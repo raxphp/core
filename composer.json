@@ -1,0 +1,12 @@
+{
+    "name": "rax/core",
+    "description": "Rax Core Bundle",
+    "license": "BSD-3-Clause",
+    "homepage": "http://raxproject.com",
+    "keywords": ["rax", "bundle"],
+    "extra": {
+        "branch-alias": {
+            "dev-master": "0.x-dev"
+        }
+    }
+}
