@@ -1,6 +1,7 @@
 {
     "name": "rax/core",
     "description": "Rax Core Bundle",
+    "type": "rax-bundle",
     "license": "BSD-3-Clause",
     "homepage": "http://raxproject.com",
     "keywords": ["rax", "bundle"],
@@ -8,5 +9,8 @@
         "branch-alias": {
             "dev-master": "0.x-dev"
         }
+    },
+    "require": {
+        "rax/bundle-installer": "*"
     }
 }
