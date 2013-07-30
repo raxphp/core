@@ -131,7 +131,7 @@ class BaseServerMode
      *
      * @return array
      */
-    public function getNames()
+    public function all()
     {
         $modes   = array();
         $modes[] = $this->getName();
