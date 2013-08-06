@@ -12,6 +12,7 @@
     },
     "require": {
         "rax/bundle-installer": "*",
-        "symfony/console": "*"
+        "symfony/console": "*",
+        "symfony/finder": "*"
     }
 }
