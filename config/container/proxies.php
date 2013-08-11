@@ -1,7 +1,3 @@
 <?php
 
-return array(
-    'proxy' => array(
-        'view',
-    ),
-);
+return array();

@@ -18,6 +18,4 @@
  *
  *     public function fooAction(Foo $newFoo, Bar $bar)
  */
-return array(
-    'freshness' => array(),
-);
+return array();

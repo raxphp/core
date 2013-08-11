@@ -310,10 +310,10 @@ class BaseArr
     }
 
     /**
-     * @param array $a
-     * @param array $b
+     * @param array|ArrayAccess $a
+     * @param array|ArrayAccess $b
      *
-     * @return array
+     * @return array|ArrayAccess
      */
     public static function merge(array $a, array $b)
     {

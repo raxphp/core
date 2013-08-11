@@ -6,8 +6,10 @@ use Closure;
 use Rax\Data\Data;
 use Rax\Exception\Exception;
 use Rax\Helper\Arr;
+use Rax\PhpParser\PhpParser;
 use ReflectionClass;
 use ReflectionFunctionAbstract;
+use Symfony\Component\Finder\Finder;
 
 /**
  * @author  Gregorio Ramirez <goyocode@gmail.com>
@@ -23,7 +25,7 @@ class BaseContainer
     /**
      * @var array
      */
-    protected $lookup = array();
+    protected $lookup;
 
     /**
      * @var array
@@ -118,9 +120,7 @@ class BaseContainer
         }
 
         if (null === $fqn) {
-
-
-            $fqn = Arr::get($this->lookup, $id);
+            $fqn = Arr::get($this->getLookup(), $id);
         }
 
         if ($fqn && isset($this->aliases[$fqn])) {
@@ -132,6 +132,48 @@ class BaseContainer
         }
 
         throw new Exception('Cannot locate or build the "%s" service.', $id);
+    }
+
+    /**
+     * @return array
+     */
+    public function getLookup()
+    {
+        if (null === $this->lookup) {
+            $finder = Finder::create()
+                ->files()
+                ->in($this->cfs->findDirs('src'))
+                ->name('*.php')
+                ->notName('Base*')
+                ->notName('*Interface.php')
+            ;
+
+            $lookup = array();
+
+            foreach ($this->config->get('container/lookup') as $id => $fqn) {
+                if (empty($this->services[$id])) {
+                    $lookup[$id] = Arr::get($this->aliases, $fqn, $fqn);
+                }
+            }
+
+            $parser = new PhpParser();
+
+            foreach ($finder as $file) {
+                $parsed = $parser->parse($file->getContents());
+
+                if ($parsed->getClass() && $parsed->getFqn()) {
+                    $id = lcfirst($parsed->getClass());
+
+                    if (empty($this->services[$id]) && empty($lookup[$id])) {
+                        $lookup[$id] = $parsed->getFqn();
+                    }
+                }
+            }
+
+            $this->lookup = $lookup;
+        }
+
+        return $this->lookup;
     }
 
     /**

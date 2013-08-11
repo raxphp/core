@@ -2,6 +2,7 @@
 
 namespace Rax\Data\Base;
 
+use ArrayAccess;
 use ArrayObject;
 use Rax\Helper\Arr;
 use Rax\Data\ArrObj;
@@ -78,6 +79,18 @@ class BaseArrObj extends ArrayObject
     public function unshift($key, $value)
     {
         $this->exchangeArray(array($key => $value) + $this->getArrayCopy());
+
+        return $this;
+    }
+
+    /**
+     * @param array|ArrayAccess $arr
+     *
+     * @return $this
+     */
+    public function merge($arr)
+    {
+        Arr::merge($this, $arr);
 
         return $this;
     }

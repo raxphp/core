@@ -35,7 +35,7 @@ class BaseCfs
     /**
      * @var string
      */
-    protected $basename;
+    protected $initBasename;
 
     /**
      * @param Bundles    $bundles
@@ -48,13 +48,13 @@ class BaseCfs
     }
 
     /**
-     * @param string $bootstrapFilename
+     * @param string $initBasename
      *
      * @return $this
      */
-    public function setBasename($bootstrapFilename)
+    public function setInitBasename($initBasename)
     {
-        $this->basename = $bootstrapFilename;
+        $this->initBasename = $initBasename;
 
         return $this;
     }
@@ -64,7 +64,7 @@ class BaseCfs
      */
     public function getBasename()
     {
-        return $this->basename;
+        return $this->initBasename;
     }
 
     /**
@@ -77,7 +77,7 @@ class BaseCfs
         $paths = array_reverse($this->bundles->getEnabledPaths());
 
         foreach ($paths as $path) {
-            if (is_file($file = $path.$this->basename.'.php')) {
+            if (is_file($file = $path.$this->initBasename.'.php')) {
                 Php::load($file);
             }
         }
