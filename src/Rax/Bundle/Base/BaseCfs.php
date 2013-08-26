@@ -33,11 +33,6 @@ class BaseCfs
     protected $serverMode;
 
     /**
-     * @var string
-     */
-    protected $initBasename;
-
-    /**
      * @param Bundles    $bundles
      * @param ServerMode $serverMode
      */
@@ -45,44 +40,6 @@ class BaseCfs
     {
         $this->bundles    = $bundles;
         $this->serverMode = $serverMode;
-    }
-
-    /**
-     * @param string $initBasename
-     *
-     * @return $this
-     */
-    public function setInitBasename($initBasename)
-    {
-        $this->initBasename = $initBasename;
-
-        return $this;
-    }
-
-    /**
-     * @return string
-     */
-    public function getBasename()
-    {
-        return $this->initBasename;
-    }
-
-    /**
-     * Bootstrap each bundle.
-     *
-     * @return $this
-     */
-    public function loadBundles()
-    {
-        $paths = array_reverse($this->bundles->getEnabledPaths());
-
-        foreach ($paths as $path) {
-            if (is_file($file = $path.$this->initBasename.'.php')) {
-                Php::load($file);
-            }
-        }
-
-        return $this;
     }
 
     /**

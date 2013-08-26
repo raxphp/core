@@ -2,14 +2,14 @@
 
 namespace Rax\Autoload\Base;
 
+use Composer\Autoload\ClassLoader;
 use Rax\Bundle\Cfs;
+use Rax\Server\ServerMode;
+use RuntimeException;
 
 /**
- * The Autoload class autoloads PHP classes.
- *
- * @author    Gregorio Ramirez <goyocode@gmail.com>
- * @copyright Copyright (c) 2012-2013 Gregorio Ramirez <goyocode@gmail.com>
- * @license   http://opensource.org/licenses/BSD-3-Clause BSD
+ * @author  Gregorio Ramirez <goyocode@gmail.com>
+ * @license http://opensource.org/licenses/BSD-3-Clause
  */
 class BaseAutoload
 {
@@ -19,91 +19,46 @@ class BaseAutoload
     protected $cfs;
 
     /**
+     * @var ServerMode
+     */
+    protected $serverMode;
+
+    /**
+     * @var ClassLoader
+     */
+    protected $loader;
+
+    /**
      * @var array
      */
     protected $cache = array();
 
     /**
-     * @var array
+     * @param Cfs        $cfs
+     * @param ServerMode $serverMode
      */
-    protected $namespaces = array();
-
-    /**
-     * @var array
-     */
-    public $fallbacks = array();
-
-    /**
-     * @param Cfs $cfs
-     */
-    public function __construct(Cfs $cfs)
+    public function __construct(Cfs $cfs, ServerMode $serverMode)
     {
-        $this->cfs = $cfs;
+        $this->cfs        = $cfs;
+        $this->serverMode = $serverMode;
     }
 
     /**
-     * Composer compatible cached mappings setter.
-     *
-     * @param array $cache
+     * @param ClassLoader $loader
      *
      * @return $this
      */
-    public function setCache(array $cache = array())
+    public function consume(ClassLoader $loader)
     {
-        if ($cache) {
-            $this->cache = $cache;
-        }
+        $loader->unregister();
+
+        $this->loader = $loader;
+        $this->cache  = $loader->getClassMap();
 
         return $this;
     }
 
     /**
-     * Gets the cached class mappings.
-     *
-     * @return array
-     */
-    public function getCache()
-    {
-        return $this->cache;
-    }
-
-    /**
-     * Composer compatible namespace setter.
-     *
-     * @param array $namespaces
-     *
-     * @return $this
-     */
-    public function setNamespaces(array $namespaces)
-    {
-        foreach ($namespaces as $namespace => $paths) {
-            $paths = (array) $paths;
-
-            if ($namespace) {
-                $this->namespaces[$namespace] = $paths;
-            } else {
-                $this->fallbacks = $paths;
-            }
-        }
-
-        return $this;
-    }
-
-    /**
-     * Gets the namespaces.
-     *
-     * @return array
-     */
-    public function getNamespaces()
-    {
-        return $this->namespaces;
-    }
-
-    /**
-     * Registers the class autoloader.
-     *
-     *     Autoload::getSingleton()->register();
-     *
      * @param bool $prepend
      *
      * @return $this
@@ -116,10 +71,6 @@ class BaseAutoload
     }
 
     /**
-     * Unregisters the class autoloader.
-     *
-     *     Autoload::getSingleton()->unregister();
-     *
      * @return $this
      */
     public function unregister()
@@ -130,19 +81,22 @@ class BaseAutoload
     }
 
     /**
-     * Loads a class file from the cascading filesystem (CFS.)
-     *
-     * This method is PSR-0 compliant. The class is loaded on first-come
-     * first-serve basis.
-     *
-     *     Autoload::getSingleton()->loadClass('BarClass');
-     *
      * @param string $class
+     *
+     * @throws RuntimeException
      */
     public function loadClass($class)
     {
         if ($file = $this->findFile($class)) {
             require $file;
+
+            if ($this->serverMode->isDev() && !class_exists($class, false) && !interface_exists($class, false) && (!function_exists('trait_exists') || !trait_exists($class, false))) {
+                if (false !== strpos($class, '/')) {
+                    throw new RuntimeException(sprintf('Class "%s" cannot contain forward slashes', $class));
+                }
+
+                throw new RuntimeException(sprintf('Expected class "%s" to be defined in file "%s"', $class, $file));
+            }
         }
     }
 
@@ -157,28 +111,10 @@ class BaseAutoload
             return $this->cache[$class];
         }
 
-        $classPath = str_replace(array('\\', '_'), '/', $class);
-
-        if ($file = $this->cfs->findFile('src', $classPath)) {
+        if ($file = $this->cfs->findFile('src', str_replace('\\', '/', $class))) {
             return $file;
-        }
-
-        $classPath .= '.php';
-
-        foreach ($this->namespaces as $namespace => $dirs) {
-            if (0 === strpos($class, $namespace)) {
-                foreach ($dirs as $dir) {
-                    if (is_file($dir.DIRECTORY_SEPARATOR.$classPath)) {
-                        return $dir.DIRECTORY_SEPARATOR.$classPath;
-                    }
-                }
-            }
-        }
-
-        foreach ($this->fallbacks as $dir) {
-            if (file_exists($dir.DIRECTORY_SEPARATOR.$classPath)) {
-                return $dir.DIRECTORY_SEPARATOR.$classPath;
-            }
+        } elseif ($file = $this->loader->findFile($class)) {
+            return $file;
         }
 
         return false;

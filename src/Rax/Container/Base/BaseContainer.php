@@ -6,9 +6,12 @@ use Closure;
 use Rax\Data\Data;
 use Rax\Exception\Exception;
 use Rax\Helper\Arr;
+use Rax\Helper\Php;
 use Rax\PhpParser\PhpParser;
 use ReflectionClass;
+use ReflectionFunction;
 use ReflectionFunctionAbstract;
+use ReflectionMethod;
 use Symfony\Component\Finder\Finder;
 
 /**
@@ -17,16 +20,6 @@ use Symfony\Component\Finder\Finder;
  */
 class BaseContainer
 {
-    /**
-     * @var array
-     */
-    protected $shared = array();
-
-    /**
-     * @var array
-     */
-    protected $lookup;
-
     /**
      * @var array
      */
@@ -48,6 +41,16 @@ class BaseContainer
     protected $proxies;
 
     /**
+     * @var array
+     */
+    protected $lookup;
+
+    /**
+     * @var array
+     */
+    protected $shared = array();
+
+    /**
      * @param Data $config
      */
     public function __construct(Data $config)
@@ -56,32 +59,131 @@ class BaseContainer
         $this->aliases   = $config->get('container/aliases');
         $this->freshness = $config->get('container/freshness');
         $this->proxies   = $config->get('container/proxies');
-
-        $this->shared['container'] = $this;
     }
 
     /**
-     * @param string $id
+     * @param array $services
      *
-     * @return mixed
+     * @return $this
      */
-    public function __get($id)
+    public function setServices(array $services)
     {
-        return $this->get($id);
+        $this->services = $services;
+
+        return $this;
     }
 
     /**
-     * @param string         $id
-     * @param object|Closure $service
+     * @return array
      */
-    public function __set($id, $service)
+    public function getServices()
     {
-        $this->set($id, $service);
+        return $this->services;
     }
 
     /**
-     * @param string|array   $id
-     * @param object|Closure $service
+     * @param array $aliases
+     *
+     * @return $this
+     */
+    public function setAliases(array $aliases)
+    {
+        $this->aliases = $aliases;
+
+        return $this;
+    }
+
+    /**
+     * @return array
+     */
+    public function getAliases()
+    {
+        return $this->aliases;
+    }
+
+    /**
+     * @param array $freshness
+     *
+     * @return $this
+     */
+    public function setFreshness(array $freshness)
+    {
+        $this->freshness = $freshness;
+
+        return $this;
+    }
+
+    /**
+     * @return array
+     */
+    public function getFreshness()
+    {
+        return $this->freshness;
+    }
+
+    /**
+     * @param array $proxies
+     *
+     * @return $this
+     */
+    public function setProxies(array $proxies)
+    {
+        $this->proxies = $proxies;
+
+        return $this;
+    }
+
+    /**
+     * @return array
+     */
+    public function getProxies()
+    {
+        return $this->proxies;
+    }
+
+    /**
+     * @param array $lookup
+     *
+     * @return $this
+     */
+    public function setLookup(array $lookup)
+    {
+        $this->lookup = $lookup;
+
+        return $this;
+    }
+
+    /**
+     * @return array
+     */
+    public function getLookup()
+    {
+        return $this->lookup;
+    }
+
+    /**
+     * @param array $shared
+     *
+     * @return $this
+     */
+    public function setShared(array $shared)
+    {
+        $this->shared = $shared;
+
+        return $this;
+    }
+
+    /**
+     * @return array
+     */
+    public function getShared()
+    {
+        return $this->shared;
+    }
+
+    /**
+     * @param string|object|array $id
+     * @param object|Closure      $service
      *
      * @return $this
      */
@@ -95,6 +197,8 @@ class BaseContainer
 
         if ($service instanceof Closure) {
             $this->services[$id] = $service;
+        } elseif (is_object($id)) {
+            $this->shared[lcfirst(Php::getClassName($id))] = $id;
         } else {
             $this->shared[$id] = $service;
         }
@@ -120,7 +224,7 @@ class BaseContainer
         }
 
         if (null === $fqn) {
-            $fqn = Arr::get($this->getLookup(), $id);
+            $fqn = Arr::get($this->lookup, $id);
         }
 
         if ($fqn && isset($this->aliases[$fqn])) {
@@ -135,45 +239,102 @@ class BaseContainer
     }
 
     /**
+     * @param string $name
+     *
      * @return array
      */
-    public function getLookup()
+    public function resolveIdFqn($name)
     {
-        if (null === $this->lookup) {
-            $finder = Finder::create()
-                ->files()
-                ->in($this->cfs->findDirs('src'))
-                ->name('*.php')
-                ->notName('Base*')
-                ->notName('*Interface.php')
-            ;
-
-            $lookup = array();
-
-            foreach ($this->config->get('container/lookup') as $id => $fqn) {
-                if (empty($this->services[$id])) {
-                    $lookup[$id] = Arr::get($this->aliases, $fqn, $fqn);
-                }
-            }
-
-            $parser = new PhpParser();
-
-            foreach ($finder as $file) {
-                $parsed = $parser->parse($file->getContents());
-
-                if ($parsed->getClass() && $parsed->getFqn()) {
-                    $id = lcfirst($parsed->getClass());
-
-                    if (empty($this->services[$id]) && empty($lookup[$id])) {
-                        $lookup[$id] = $parsed->getFqn();
-                    }
-                }
-            }
-
-            $this->lookup = $lookup;
+        if (strpos($name, '\\')) {
+            $id  = lcfirst(Php::getClassName($name));
+            $fqn = $name;
+        } else {
+            $id  = $name;
+            $fqn = null;
         }
 
-        return $this->lookup;
+        return array($id, $fqn);
+    }
+
+    /**
+     * @return $this
+     */
+    public function loadLookup()
+    {
+        $finder = Finder::create()
+            ->files()
+            ->in($this->cfs->findDirs('src'))
+            ->name('*.php')
+            ->notName('Base*')
+            ->notName('*Interface.php');
+
+        $lookup = array();
+
+        foreach ($this->config->get('container/lookup') as $id => $fqn) {
+            if (empty($this->services[$id])) {
+                $lookup[$id] = Arr::get($this->aliases, $fqn, $fqn);
+            }
+        }
+
+        $parser = new PhpParser();
+
+        foreach ($finder as $file) {
+            $parsed = $parser->parse($file->getContents());
+
+            if ($parsed->getClass() && $parsed->getFqn()) {
+                $id = lcfirst($parsed->getClass());
+
+                if (empty($this->services[$id]) && empty($lookup[$id])) {
+                    $lookup[$id] = $parsed->getFqn();
+                }
+            }
+        }
+
+        $this->lookup = $lookup;
+
+        return $this;
+    }
+
+    /**
+     * @param string|Closure|object $obj
+     * @param string                $methodName
+     *
+     * @return mixed
+     */
+    public function call($obj, $methodName = null)
+    {
+        if (is_string($obj) || $obj instanceof Closure) {
+            return $this->callFunction($obj);
+        } else {
+            return $this->callMethod($obj, $methodName);
+        }
+    }
+
+    /**
+     * @param string|Closure $function
+     *
+     * @return mixed
+     */
+    public function callFunction($function)
+    {
+        $function     = new ReflectionFunction($function);
+        $dependencies = $this->resolveDependencies($function);
+
+        return $function->invokeArgs($dependencies);
+    }
+
+    /**
+     * @param object $obj
+     * @param string $methodName
+     *
+     * @return mixed
+     */
+    public function callMethod($obj, $methodName)
+    {
+        $method       = new ReflectionMethod($obj, $methodName);
+        $dependencies = $this->resolveDependencies($method);
+
+        return $method->invokeArgs($obj, $dependencies);
     }
 
     /**
@@ -222,5 +383,24 @@ class BaseContainer
         }
 
         return $dependencies;
+    }
+
+    /**
+     * @param string         $id
+     * @param object|Closure $service
+     */
+    public function __set($id, $service)
+    {
+        $this->set($id, $service);
+    }
+
+    /**
+     * @param string $id
+     *
+     * @return mixed
+     */
+    public function __get($id)
+    {
+        return $this->get($id);
     }
 }

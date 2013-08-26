@@ -75,4 +75,20 @@ class BasePhp
             'array (' => 'array(',
         ));
     }
+
+    /**
+     * @param string|object $class
+     *
+     * @return string
+     */
+    public static function getClassName($class)
+    {
+        if (is_object($class)) {
+            $class = get_class($class);
+        }
+
+        $phpSucks = explode('\\', $class);
+
+        return end($phpSucks);
+    }
 }

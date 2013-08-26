@@ -5,6 +5,7 @@ namespace Rax\Helper\Base;
 use ArrayAccess;
 use ArrayObject;
 use Rax\Exception\Exception;
+use Rax\Helper\Arr;
 use Rax\Helper\Php;
 
 /**
@@ -88,9 +89,9 @@ class BaseArr
      *     Arr::unshift($arr, 'a', 'a'); // array("a" => "a", "b" => "b")
      *     array_unshift($arr, 'a');     // array(0   => "a", "b" => "b")
      *
-     * @param array|ArrayAccess  $arr
-     * @param string             $key
-     * @param mixed              $value
+     * @param array|ArrayAccess $arr
+     * @param string            $key
+     * @param mixed             $value
      *
      * @return array
      */
@@ -118,19 +119,20 @@ class BaseArr
      * @param array|ArrayAccess $arr
      * @param array|string      $key
      * @param mixed             $value
+     * @param bool              $useDotNotation
      */
-    public static function set(&$arr, $key, $value = null)
+    public static function set(&$arr, $key, $value = null, $useDotNotation = true)
     {
         if (!static::isArray($arr)) {
             throw new Exception('Arr::set() expects parameter 1 to be an array or ArrayAccess object, %s given', Php::getDataType($arr));
         }
 
         if (is_array($key)) {
-            foreach ($key as $tmpKey => $tmpValue) {
-                static::set($arr, $tmpKey, $tmpValue);
+            foreach ($key as $newKey => $newValue) {
+                static::set($arr, $newKey, $newValue);
             }
         } else {
-            $keys = explode('.', $key);
+            $keys = $useDotNotation ? explode('.', $key) : array($key);
 
             while (count($keys) > 1) {
                 $key = array_shift($keys);
@@ -165,34 +167,37 @@ class BaseArr
      *     Arr::get($arr, 'one.two');              // 2
      *     Arr::get($arr, array('three', 'four')); // array("three" => 3, "four" => 4)
      *
+     *
      * @throws Exception
      *
      * @param array|ArrayAccess $arr
      * @param array|string      $key
      * @param mixed             $default
+     * @param bool              $useDotNotation
      *
-     * @return mixed
+     * @return mixed|array
      */
-    public static function get($arr, $key = null, $default = null)
+    public static function get($arr, $key = null, $default = null, $useDotNotation = true)
     {
         if (!static::isArray($arr)) {
             throw new Exception('Arr::get() expects parameter 1 to be an array or ArrayAccess object, %s given', Php::getDataType($arr));
         }
 
         if (is_array($key)) {
-            $tmp = array();
-            foreach ($key as $tmpKey) {
-                $tmp[$tmpKey] = static::get($arr, $tmpKey, $default);
+            $newArr = array();
+
+            foreach (static::normalize($key, $default) as $newKey => $newDefault) {
+                $newArr[$newKey] = static::get($arr, $newKey, $newDefault);
             }
 
-            return $tmp;
+            return $newArr;
         }
 
         if (null === $key) {
             return $arr;
         }
 
-        $keys = explode('.', $key);
+        $keys = $useDotNotation ? explode('.', $key) : array($key);
 
         foreach ($keys as $key) {
             if ((is_array($arr) && array_key_exists($key, $arr)) ||
@@ -227,21 +232,23 @@ class BaseArr
      *
      * @param array|ArrayAccess $arr
      * @param array|string      $key
+     * @param bool              $useDotNotation
      *
      * @return array|bool
      */
-    public static function remove(&$arr, $key)
+    public static function remove(&$arr, $key, $useDotNotation = true)
     {
         if (is_array($key)) {
-            $tmp = array();
-            foreach ($key as $tmpKey) {
-                $tmp[$tmpKey] = static::remove($arr, $tmpKey);
+            $newArr = array();
+
+            foreach ($key as $newKey) {
+                $newArr[$newKey] = static::remove($arr, $newKey);
             }
 
-            return $tmp;
+            return $newArr;
         }
 
-        $keys    = explode('.', $key);
+        $keys    = $useDotNotation ? explode('.', $key) : array($key);
         $currKey = array_shift($keys);
 
         if ((!is_array($arr) || !array_key_exists($currKey, $arr)) &&
@@ -277,23 +284,24 @@ class BaseArr
      *
      * @param array|ArrayAccess $arr
      * @param array|string      $key
+     * @param bool              $useDotNotation
      *
      * @return bool
      */
-    public static function has($arr, $key)
+    public static function has($arr, $key, $useDotNotation = true)
     {
         if (!static::isArray($arr)) {
             throw new Exception('Arr::has() expects parameter 1 to be an array or ArrayAccess object, %s given', Php::getDataType($arr));
         }
 
         if (is_array($key)) {
-            foreach ($key as $tmpKey) {
-                if (!static::has($arr, $tmpKey)) {
+            foreach ($key as $newKey) {
+                if (!static::has($arr, $newKey)) {
                     return false;
                 }
             }
         } else {
-            $keys = explode('.', $key);
+            $keys = $useDotNotation ? explode('.', $key) : array($key);
 
             foreach ($keys as $key) {
                 if ((is_array($arr) && array_key_exists($key, $arr)) ||
@@ -332,5 +340,27 @@ class BaseArr
         }
 
         return $a;
+    }
+
+    /**
+     * @param array $arr
+     * @param mixed $default
+     *
+     * @return array
+     */
+    public static function normalize($arr, $default = null)
+    {
+        $newArr = array();
+
+        foreach ($arr as $key => $value) {
+            if (is_numeric($key)) {
+                $key   = $value;
+                $value = $default;
+            }
+
+            $newArr[$key] = $value;
+        }
+
+        return $newArr;
     }
 }
