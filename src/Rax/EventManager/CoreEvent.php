@@ -11,10 +11,35 @@ final class CoreEvent
     /**
      * @var string
      */
-    const EVENT_TRIGGERED = 'core.event_triggered';
+    const STARTUP = 'core.startup';
 
     /**
      * @var string
      */
-    const BOOTSTRAP = 'core.bootstrap';
+    const REQUEST = 'core.request';
+
+    /**
+     * @var string
+     */
+    const CONTROLLER = 'core.controller';
+
+    /**
+     * @var string
+     */
+    const VIEW = 'core.view';
+
+    /**
+     * @var string
+     */
+    const RESPONSE = 'core.response';
+
+    /**
+     * @var string
+     */
+    const SHUTDOWN = 'core.shutdown';
+
+    /**
+     * @var string
+     */
+    const EVENT_TRIGGERED = 'core.event_triggered';
 }

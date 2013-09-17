@@ -2,8 +2,8 @@
 
 namespace Rax\App\Base;
 
-use Rax\Container\Container;
-use Rax\Http\Request;
+use Rax\EventManager\CoreEvent;
+use Rax\EventManager\EventManager;
 
 /**
  * @author  Gregorio Ramirez <goyocode@gmail.com>
@@ -11,15 +11,33 @@ use Rax\Http\Request;
  */
 class BaseApp
 {
-    public function run()
+    /**
+     * @var EventManager
+     */
+    protected $eventManager;
+
+    /**
+     * @param EventManager $eventManager
+     */
+    public function __construct(EventManager $eventManager)
     {
-        echo 1;
-//        $response = $this->handle($request);
-//        $response->send();
+        $this->eventManager = $eventManager;
     }
 
-    public function handle(Request $request)
+    /**
+     * @return $this
+     */
+    public function run()
     {
+        $this->eventManager->trigger(array(
+            CoreEvent::STARTUP,
+            CoreEvent::REQUEST,
+            CoreEvent::CONTROLLER,
+            CoreEvent::VIEW,
+            CoreEvent::RESPONSE,
+            CoreEvent::SHUTDOWN,
+        ));
 
+        return $this;
     }
 }

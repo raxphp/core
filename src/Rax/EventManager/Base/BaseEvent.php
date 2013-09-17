@@ -17,11 +17,6 @@ class BaseEvent
     protected $name;
 
     /**
-     * @var object
-     */
-    protected $target;
-
-    /**
      * @var array
      */
     protected $params = array();
@@ -38,13 +33,11 @@ class BaseEvent
 
     /**
      * @param string $name
-     * @param object $target
      * @param array  $params
      */
-    public function __construct($name = null, $target = null, array $params = array())
+    public function __construct($name = null, array $params = array())
     {
         $this->name   = $name;
-        $this->target = $target;
         $this->params = $params;
     }
 
@@ -66,26 +59,6 @@ class BaseEvent
     public function getName()
     {
         return $this->name;
-    }
-
-    /**
-     * @param object $target
-     *
-     * @return $this
-     */
-    public function setTarget($target)
-    {
-        $this->target = $target;
-
-        return $this;
-    }
-
-    /**
-     * @return object
-     */
-    public function getTarget()
-    {
-        return $this->target;
     }
 
     /**

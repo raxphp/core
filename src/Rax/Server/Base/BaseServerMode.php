@@ -39,9 +39,11 @@ class BaseServerMode
     /**
      * @param int|string $mode
      */
-    public function __construct($mode)
+    public function __construct($mode = null)
     {
-        $this->set($mode);
+        if (null !== $mode) {
+            $this->set($mode);
+        }
     }
 
     /**

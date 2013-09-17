@@ -25,6 +25,11 @@ class BaseEventManager
     protected $events = array();
 
     /**
+     * @var Event
+     */
+    protected $event;
+
+    /**
      * @param Container $container
      * @param Data      $config
      */
@@ -52,6 +57,26 @@ class BaseEventManager
     public function getEvents()
     {
         return $this->events;
+    }
+
+    /**
+     * @param Event $event
+     *
+     * @return $this
+     */
+    public function setEvent(Event $event)
+    {
+        $this->event = $event;
+
+        return $this;
+    }
+
+    /**
+     * @return Event
+     */
+    public function getEvent()
+    {
+        return $this->event;
     }
 
     /**
@@ -86,20 +111,27 @@ class BaseEventManager
 
     /**
      * @param string $name
-     * @param object $target
      * @param array $params
      *
-     * @return Event
+     * @return $this
      */
-    public function trigger($name, $target = null, array $params = array())
+    public function trigger($name, array $params = array())
     {
+        if (is_array($name)) {
+            $arr = Arr::normalize($name, array());
+            array_map(array($this, __FUNCTION__), array_keys($arr), array_values($arr));
+
+            return $this;
+        }
+
         if (empty($this->events[$name])) {
             return false;
         }
 
-        $event = new Event($name, $target, $params);
+        $event = new Event($name, $params);
         $event->loadObservers(Arr::normalize($this->events[$name], array()));
 
+        $this->setEvent($event);
         $this->container->set($event);
 
         foreach ($event->getObservers() as $observer) {
@@ -120,9 +152,9 @@ class BaseEventManager
         }
 
         if (CoreEvent::EVENT_TRIGGERED !== $name) {
-            $this->trigger(CoreEvent::EVENT_TRIGGERED, $this, array('event' => $event));
+            $this->trigger(CoreEvent::EVENT_TRIGGERED);
         }
 
-        return $event;
+        return $this;
     }
 }
