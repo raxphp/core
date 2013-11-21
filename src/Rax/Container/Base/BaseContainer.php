@@ -207,13 +207,15 @@ class BaseContainer
     }
 
     /**
+     * @throws Exception
+     *
      * @param string $id
      * @param string $fqn
+     * @param array  $values
      *
-     * @throws Exception
      * @return mixed
      */
-    public function get($id, $fqn = null)
+    public function get($id, $fqn = null, array $values = array())
     {
         if (isset($this->shared[$id])) {
             return $this->shared[$id];
@@ -231,7 +233,7 @@ class BaseContainer
             $fqn = $this->aliases[$fqn];
         }
 
-        if ($fqn && ($service = $this->build($fqn))) {
+        if ($fqn && ($service = $this->build($fqn, $values))) {
             return ($this->shared[$id] = $service);
         }
 
@@ -298,27 +300,29 @@ class BaseContainer
     /**
      * @param string|Closure|object $obj
      * @param string                $methodName
+     * @param array                 $values
      *
      * @return mixed
      */
-    public function call($obj, $methodName = null)
+    public function call($obj, $methodName = null, array $values = array())
     {
         if (is_string($obj) || $obj instanceof Closure) {
-            return $this->callFunction($obj);
+            return $this->callFunction($obj, $values);
         } else {
-            return $this->callMethod($obj, $methodName);
+            return $this->callMethod($obj, $methodName, $values);
         }
     }
 
     /**
      * @param string|Closure $function
+     * @param array          $values
      *
      * @return mixed
      */
-    public function callFunction($function)
+    public function callFunction($function, array $values = array())
     {
         $function     = new ReflectionFunction($function);
-        $dependencies = $this->resolveDependencies($function);
+        $dependencies = $this->resolveDependencies($function, $values);
 
         return $function->invokeArgs($dependencies);
     }
@@ -326,23 +330,25 @@ class BaseContainer
     /**
      * @param object $obj
      * @param string $methodName
+     * @param array  $values
      *
      * @return mixed
      */
-    public function callMethod($obj, $methodName)
+    public function callMethod($obj, $methodName, array $values = array())
     {
         $method       = new ReflectionMethod($obj, $methodName);
-        $dependencies = $this->resolveDependencies($method);
+        $dependencies = $this->resolveDependencies($method, $values);
 
         return $method->invokeArgs($obj, $dependencies);
     }
 
     /**
      * @param string $fqn
+     * @param array  $values
      *
      * @return object
      */
-    public function build($fqn)
+    public function build($fqn, array $values = array())
     {
         $refl = new ReflectionClass($fqn);
 
@@ -350,7 +356,7 @@ class BaseContainer
             return new $fqn();
         }
 
-        $dependencies = $this->resolveDependencies($constructor);
+        $dependencies = $this->resolveDependencies($constructor, $values);
 
         return $refl->newInstanceArgs($dependencies);
     }

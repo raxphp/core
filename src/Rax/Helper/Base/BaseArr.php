@@ -175,7 +175,7 @@ class BaseArr
      * @param mixed             $default
      * @param bool              $useDotNotation
      *
-     * @return mixed|array
+     * @return mixed
      */
     public static function get($arr, $key = null, $default = null, $useDotNotation = true)
     {
@@ -205,7 +205,7 @@ class BaseArr
             ) {
                 $arr = $arr[$key];
             } else {
-                return $default;
+                return Php::value($default);
             }
         }
 

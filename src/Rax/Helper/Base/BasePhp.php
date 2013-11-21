@@ -52,25 +52,25 @@ class BasePhp
      *     gettype(new Exception());          // "object"
      *     Php::getDataType(new Exception()); // "Exception"
      *
-     * @param string $var
+     * @param mixed $value
      *
      * @return string
      */
-    public static function getDataType($var)
+    public static function getDataType($value)
     {
-        return is_object($var) ? get_class($var) : gettype($var);
+        return is_object($value) ? get_class($value) : gettype($value);
     }
 
     /**
      * Gets the result of var_export() with the coding style adjusted.
      *
-     * @param mixed $data
+     * @param mixed $code
      *
      * @return string
      */
-    public static function varExport($data)
+    public static function varExport($code)
     {
-        return strtr(var_export($data, true), array(
+        return strtr(var_export($code, true), array(
             '  '      => '    ',
             'array (' => 'array(',
         ));

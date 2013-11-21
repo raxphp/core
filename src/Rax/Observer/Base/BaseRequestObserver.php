@@ -3,6 +3,7 @@
 namespace Rax\Observer\Base;
 
 use Rax\Http\Request;
+use Rax\Routing\Router;
 
 /**
  * @author  Gregorio Ramirez <goyocode@gmail.com>

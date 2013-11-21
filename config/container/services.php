@@ -7,8 +7,4 @@ use Rax\Http\Request;
  *
  * You can override any service in your bundle's configuration.
  */
-return array(
-    'request' => function() {
-        return new Request();
-    },
-);
+return array();
