@@ -1,11 +1,11 @@
 <?php
 
-namespace Rax\Data\Base;
+namespace Rax\Config\Base;
 
 use ArrayAccess;
 use ArrayObject;
 use Rax\Helper\Arr;
-use Rax\Data\ArrObj;
+use Rax\Config\ArrObj;
 
 /**
  * @author  Gregorio Ramirez <goyocode@gmail.com>
@@ -40,22 +40,14 @@ class BaseArrObj extends ArrayObject
      *
      * @param string $key
      * @param mixed  $default
+     * @param bool   $useDotNotation
+     * @param bool   $throwIfNotFound
      *
      * @return ArrObj|mixed
      */
-    public function get($key = null, $default = null)
+    public function get($key = null, $default = null, $useDotNotation = true, $throwIfNotFound = false)
     {
-        return Arr::get($this, $key, $default);
-    }
-
-    /**
-     * @param string $key
-     *
-     * @return bool
-     */
-    public function has($key)
-    {
-        return Arr::has($this, $key);
+        return Arr::get($this, $key, $default, $useDotNotation, $throwIfNotFound);
     }
 
     /**
@@ -68,6 +60,16 @@ class BaseArrObj extends ArrayObject
         Arr::remove($this, $key);
 
         return $this;
+    }
+
+    /**
+     * @param string $key
+     *
+     * @return bool
+     */
+    public function has($key)
+    {
+        return Arr::has($this, $key);
     }
 
     /**

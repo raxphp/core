@@ -3,27 +3,31 @@
 namespace Rax\Server\Base;
 
 use Exception;
-use ReflectionClass;
 use InvalidArgumentException;
+use ReflectionObject;
 
 /**
- * The ServerMode class stores and manages the server mode (a.k.a application
- * environment).
+ * ServerMode holds the server mode, a.k.a the application environment.
  *
- * @author    Gregorio Ramirez <goyocode@gmail.com>
- * @copyright Copyright (c) Gregorio Ramirez <goyocode@gmail.com>
- * @license   http://opensource.org/licenses/BSD-3-Clause BSD
+ * The server mode can be defined at the server level:
+ *
+ * - Apache: SetEnv SERVER_MODE development
+ * - Nginx:  fastcgi_param SERVER_MODE development
+ * - Shell:  export SERVER_MODE=development
+ *
+ * @author  Gregorio Ramirez <goyocode@gmail.com>
+ * @license http://opensource.org/licenses/BSD-3-Clause
  */
 class BaseServerMode
 {
     /**
      * Server modes:
      *
-     * Production:  Server accessible by end users.
-     * Staging:     Server with production settings used by team and client to
-     *              test changes before they go live.
-     * Testing:     Server with development settings used by team and developer
-     *              to test changes before pushing to staging.
+     * Production:  Server accessible by all users.
+     * Staging:     Production clone used by team and client to test changes
+     *              before they go live.
+     * Testing:     Development clone used by team and developer to test changes
+     *              before pushing to staging.
      * Development: Local machine.
      */
     const PRODUCTION  = 400;
@@ -37,6 +41,12 @@ class BaseServerMode
     protected $mode;
 
     /**
+     *     $serverMode = new ServerMode($_SERVER['SERVER_MODE']);
+     *
+     *     // Or
+     *     $serverMode = new ServerMode();
+     *     $serverMode->set($_SERVER['SERVER_MODE']);
+     *
      * @param int|string $mode
      */
     public function __construct($mode = null)
@@ -49,8 +59,16 @@ class BaseServerMode
     /**
      * Sets the server mode.
      *
-     * The accepted values can be an integer, mostly like by passing in a
-     * constant e.g. ServerMode::DEVELOPMENT, or a string e.g. "development".
+     * Ultimately the value is stored as an integer to allow greater than logic
+     * when comparing modes.
+     *
+     * NOTE: The server mode will be set automatically if defined at the server level.
+     *
+     *     // Integer
+     *     $serverMode->set(ServerMode::DEVELOPMENT);
+     *
+     *     // String
+     *     $serverMode->set('development');
      *
      * @throws InvalidArgumentException
      *
@@ -72,10 +90,12 @@ class BaseServerMode
     }
 
     /**
-     * Gets the current server mode.
+     * Gets the server mode.
      *
-     * The value is returned as an integer to allow greater-than logic in
-     * conditional statements.
+     * The server mode is stored as an integer to allow greater than logic when
+     * comparing modes.
+     *
+     *     $mode = $serverMode->get(); // 100
      *
      * @return int
      */
@@ -85,18 +105,21 @@ class BaseServerMode
     }
 
     /**
-     * Gets the string representation of the current server mode
-     * e.g. "development".
+     * Gets the server mode as a string e.g. "development".
+     *
+     *     $mode = $serverMode->getName(); // "development"
      *
      * @throws Exception
+     *
      * @return string
      */
     public function getName()
     {
-        $reflection = new ReflectionClass(get_class($this));
+        $reflection = new ReflectionObject($this);
 
-        foreach ($reflection->getConstants() as $name => $value) {
-            if ($this->mode === $value) {
+        // e.g. DEVELOPMENT => 100
+        foreach ($reflection->getConstants() as $name => $mode) {
+            if ($this->mode === $mode) {
                 return strtolower($name);
             }
         }
@@ -105,12 +128,17 @@ class BaseServerMode
     }
 
     /**
-     * Gets the short name of the current server mode e.g. "dev".
+     * Gets the server mode's short name e.g. "dev".
      *
-     * A short name usually represents a range of modes e.g. "dev" is returned
-     * for any mode between "development" and "testing".
+     * A short name represents a range of server modes that are alike in configuration:
+     *
+     * - prod: Any mode that falls between staging and production.
+     * - dev: Any mode that falls between development and testing.
+     *
+     *     $mode = $serverMode->getShortName(); // "dev"
      *
      * @throws Exception
+     *
      * @return string
      */
     public function getShortName()
@@ -169,7 +197,7 @@ class BaseServerMode
     }
 
     /**
-     * Checks if the current server mode is "production".
+     * Checks if the server mode is "production".
      *
      * @return bool
      */
@@ -179,7 +207,7 @@ class BaseServerMode
     }
 
     /**
-     * Checks if the current server mode is "staging".
+     * Checks if the server mode is "staging".
      *
      * @return bool
      */
@@ -189,7 +217,7 @@ class BaseServerMode
     }
 
     /**
-     * Checks if the current server mode is "testing".
+     * Checks if the server mode is "testing".
      *
      * @return bool
      */
@@ -199,7 +227,7 @@ class BaseServerMode
     }
 
     /**
-     * Checks if the current server mode is "development".
+     * Checks if the server mode is "development".
      *
      * @return bool
      */
@@ -209,7 +237,7 @@ class BaseServerMode
     }
 
     /**
-     * Checks if the current server mode is "staging" or "production".
+     * Checks if the server mode is "staging" or "production".
      *
      * @return bool
      */
@@ -222,7 +250,7 @@ class BaseServerMode
     }
 
     /**
-     * Checks if the current server mode is "testing" or "development".
+     * Checks if the server mode is "testing" or "development".
      *
      * @return bool
      */

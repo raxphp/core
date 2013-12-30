@@ -77,18 +77,24 @@ class BasePhp
     }
 
     /**
-     * @param string|object $class
+     * Gets the class name without the namespaces.
+     *
+     *     $bar = new Rax\Foo\Bar();
+     *
+     *     $className = Php::getClassName($bar); // "Bar"
+     *
+     * @param string|object $obj
      *
      * @return string
      */
-    public static function getClassName($class)
+    public static function getClassName($obj)
     {
-        if (is_object($class)) {
-            $class = get_class($class);
+        if (is_object($obj)) {
+            $obj = get_class($obj);
         }
 
-        $phpSucks = explode('\\', $class);
+        $class = explode('\\', $obj);
 
-        return end($phpSucks);
+        return end($class);
     }
 }

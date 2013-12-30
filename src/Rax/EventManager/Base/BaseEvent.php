@@ -152,10 +152,6 @@ class BaseEvent
                 'prepend' => false,
             ));
 
-            if (!$config['enabled']) {
-                continue;
-            }
-
             $observer = new Observer($config['name'], $config['enabled']);
 
             if ($config['prepend']) {

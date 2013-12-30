@@ -29,14 +29,7 @@ class BaseApp
      */
     public function run()
     {
-        $this->eventManager->trigger(array(
-            CoreEvent::STARTUP,
-            CoreEvent::REQUEST,
-            CoreEvent::CONTROLLER,
-            CoreEvent::VIEW,
-            CoreEvent::RESPONSE,
-            CoreEvent::SHUTDOWN,
-        ));
+        $this->eventManager->trigger('core.app');
 
         return $this;
     }

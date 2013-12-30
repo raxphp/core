@@ -1,8 +1,8 @@
 <?php
 
-namespace Rax\Data\Loader\Base;
+namespace Rax\Config\Loader\Base;
 
-use Rax\Data\Loader\LoaderInterface;
+use Rax\Config\Loader\ConfigLoaderInterface;
 use Rax\Helper\Arr;
 use Rax\Helper\Php;
 use Rax\Bundle\Cfs;
@@ -14,7 +14,7 @@ use Rax\Exception\Exception;
  * @author  Gregorio Ramirez <goyocode@gmail.com>
  * @license http://opensource.org/licenses/BSD-3-Clause
  */
-class BaseFileLoader implements LoaderInterface
+class BaseFileConfigLoader implements ConfigLoaderInterface
 {
     /**
      * @var string

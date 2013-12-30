@@ -50,4 +50,29 @@ class BaseText
 
         return $str;
     }
+
+    /**
+     * Checks if string contains substring at least once.
+     *
+     *     // Case-sensitive
+     *     Text::contains('sir', 'Hello sir!'); // true
+     *     Text::contains('SIR', 'Hello sir!'); // false
+     *
+     *     // Case-insensitive
+     *     Text::contains('SIR', 'Hello sir!', true); // true
+     *
+     * @param string $needle
+     * @param string $haystack
+     * @param bool   $isCaseInsensitive
+     *
+     * @return bool
+     */
+    public static function contains($needle, $haystack, $isCaseInsensitive = false)
+    {
+        if ($isCaseInsensitive) {
+            return (false !== stripos($haystack, $needle));
+        } else {
+            return (false !== strpos($haystack, $needle));
+        }
+    }
 }

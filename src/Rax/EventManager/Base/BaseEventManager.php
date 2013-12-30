@@ -4,7 +4,7 @@ namespace Rax\EventManager\Base;
 
 use Rax\EventManager\CoreEvent;
 use Rax\Container\Container;
-use Rax\Data\Data;
+use Rax\Config\Config;
 use Rax\EventManager\Event;
 use Rax\Helper\Arr;
 
@@ -31,9 +31,9 @@ class BaseEventManager
 
     /**
      * @param Container $container
-     * @param Data      $config
+     * @param Config      $config
      */
-    public function __construct(Container $container, Data $config)
+    public function __construct(Container $container, Config $config)
     {
         $this->container = $container;
         $this->events    = $config->get('events');
@@ -117,13 +117,6 @@ class BaseEventManager
      */
     public function trigger($name, array $params = array())
     {
-        if (is_array($name)) {
-            $arr = Arr::normalize($name, array());
-            array_map(array($this, __FUNCTION__), array_keys($arr), array_values($arr));
-
-            return $this;
-        }
-
         if (empty($this->events[$name])) {
             return false;
         }
@@ -139,7 +132,7 @@ class BaseEventManager
                 continue;
             }
 
-            list($id, $fqn) = $this->container->resolveIdFqn($observer->getName());
+            list($id, $fqn) = $this->container->parseIdFqn($observer->getName());
 
             $service = $this->container->get($id, $fqn);
             $this->container->call($service, 'trigger');

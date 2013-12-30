@@ -1,8 +1,8 @@
 <?php
 
-namespace Rax\Data;
+namespace Rax\Config;
 
-use Rax\Data\Base\BaseArrObj;
+use Rax\Config\Base\BaseArrObj;
 
 /**
  * {@inheritdoc}

@@ -52,7 +52,7 @@ class BaseRoute
     /**
      * @var string
      */
-    protected $regex;
+    protected $pattern;
 
     /**
      * @param string $name
@@ -245,13 +245,13 @@ class BaseRoute
      *
      * @return string
      */
-    public function getRegex()
+    public function getPattern()
     {
-        if (null === $this->regex) {
-            $this->regex = $this->compile();
+        if (null === $this->pattern) {
+            $this->pattern = $this->compile();
         }
 
-        return $this->regex;
+        return $this->pattern;
     }
 
     /**

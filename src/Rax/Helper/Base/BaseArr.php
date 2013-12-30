@@ -37,8 +37,11 @@ class BaseArr
     /**
      * Checks if the parameter is an associative array.
      *
-     *     Arr::isAssociative(array('a' => 'b')); // true
-     *     Arr::isAssociative(array('a'));        // false
+     *     // true
+     *     Arr::isAssociative(array('a' => 'a'));
+     *
+     *     // false
+     *     Arr::isAssociative(array('a'));
      *
      * @param array|ArrayObject $arr
      *
@@ -60,8 +63,11 @@ class BaseArr
     /**
      * Checks if the parameter is a numeric array.
      *
-     *     Arr::isNumeric(array('a'));        // true
-     *     Arr::isNumeric(array('a' => 'b')); // false
+     *     // true
+     *     Arr::isNumeric(array('a'));
+     *
+     *     // false
+     *     Arr::isNumeric(array('a' => 'a'));
      *
      * @param array|ArrayObject $arr
      *
@@ -81,30 +87,52 @@ class BaseArr
     }
 
     /**
-     * array_unshift() for associative arrays. Prepends a key=>value item to the
-     * beginning of an array.
+     * Adds a key => value to the top of an array.
+     *
+     * array_unshift() for associative arrays.
      *
      *     $arr = array('b' => 'b');
      *
-     *     Arr::unshift($arr, 'a', 'a'); // array("a" => "a", "b" => "b")
-     *     array_unshift($arr, 'a');     // array(0   => "a", "b" => "b")
+     *     Arr::unshift($arr, 'a', 'a');
      *
-     * @param array|ArrayAccess $arr
+     *     // Result
+     *     Array
+     *     (
+     *         [a] => a
+     *         [b] => b
+     *     )
+     *
+     *     array_unshift($arr, 'a');
+     *
+     *     // Result
+     *     Array
+     *     (
+     *         [0] => a
+     *         [b] => b
+     *     )
+     *
+     * @param array|ArrayObject $arr
      * @param string            $key
      * @param mixed             $value
      *
      * @return array
      */
-    public static function unshift(array &$arr, $key, $value)
+    public static function unshift($arr, $key, $value)
     {
-        return ($arr = array($key => $value) + $arr);
+        if ($arr instanceof ArrayObject) {
+            $arr->exchangeArray(array($key => $value) + $arr->getArrayCopy());
+
+            return $arr;
+        }
+
+        return (array($key => $value) + $arr);
     }
 
     /**
      * Sets a value on an array using dot notation.
      *
-     *     $array = array();
-     *     Arr::set($array, 'one.two.three', 'wut');
+     *     $arr = array();
+     *     Arr::set($arr, 'one.two.three', 'wut');
      *
      *     array(
      *         "one" => array(
@@ -119,9 +147,8 @@ class BaseArr
      * @param array|ArrayAccess $arr
      * @param array|string      $key
      * @param mixed             $value
-     * @param bool              $useDotNotation
      */
-    public static function set(&$arr, $key, $value = null, $useDotNotation = true)
+    public static function set(&$arr, $key, $value = null)
     {
         if (!static::isArray($arr)) {
             throw new Exception('Arr::set() expects parameter 1 to be an array or ArrayAccess object, %s given', Php::getDataType($arr));
@@ -131,21 +158,23 @@ class BaseArr
             foreach ($key as $newKey => $newValue) {
                 static::set($arr, $newKey, $newValue);
             }
-        } else {
-            $keys = $useDotNotation ? explode('.', $key) : array($key);
 
-            while (count($keys) > 1) {
-                $key = array_shift($keys);
+            return;
+        }
 
-                if (!isset($arr[$key]) || !static::isArray($arr[$key])) {
-                    $arr[$key] = array();
-                }
+        $keys = explode('.', $key);
 
-                $arr =& $arr[$key];
+        while (count($keys) > 1) {
+            $key = array_shift($keys);
+
+            if (!isset($arr[$key]) || !static::isArray($arr[$key])) {
+                $arr[$key] = array();
             }
 
-            $arr[array_shift($keys)] = $value;
+            $arr =& $arr[$key];
         }
+
+        $arr[array_shift($keys)] = $value;
     }
 
     /**
@@ -166,7 +195,6 @@ class BaseArr
      *     Arr::get($arr, 'one');                  // array("two" => 2)
      *     Arr::get($arr, 'one.two');              // 2
      *     Arr::get($arr, array('three', 'four')); // array("three" => 3, "four" => 4)
-     *
      *
      * @throws Exception
      *
@@ -200,9 +228,7 @@ class BaseArr
         $keys = $useDotNotation ? explode('.', $key) : array($key);
 
         foreach ($keys as $key) {
-            if ((is_array($arr) && array_key_exists($key, $arr)) ||
-                ($arr instanceof ArrayAccess && $arr->offsetExists($key))
-            ) {
+            if ((is_array($arr) && array_key_exists($key, $arr)) || ($arr instanceof ArrayAccess && $arr->offsetExists($key))) {
                 $arr = $arr[$key];
             } else {
                 return Php::value($default);
@@ -213,7 +239,7 @@ class BaseArr
     }
 
     /**
-     * Unsets an array item using dot notation.
+     * Removes an item from an array using dot notation.
      *
      *     $arr = array(
      *         'one' => array(
@@ -232,11 +258,10 @@ class BaseArr
      *
      * @param array|ArrayAccess $arr
      * @param array|string      $key
-     * @param bool              $useDotNotation
      *
-     * @return array|bool
+     * @return bool
      */
-    public static function remove(&$arr, $key, $useDotNotation = true)
+    public static function remove(&$arr, $key)
     {
         if (is_array($key)) {
             $newArr = array();
@@ -248,19 +273,15 @@ class BaseArr
             return $newArr;
         }
 
-        $keys    = $useDotNotation ? explode('.', $key) : array($key);
+        $keys    = explode('.', $key);
         $currKey = array_shift($keys);
 
-        if ((!is_array($arr) || !array_key_exists($currKey, $arr)) &&
-            (!$arr instanceof ArrayAccess || !$arr->offsetExists($currKey))
-        ) {
+        if ((!is_array($arr) || !array_key_exists($currKey, $arr)) && (!$arr instanceof ArrayAccess || !$arr->offsetExists($currKey))) {
             return false;
         }
 
         if (!empty($keys)) {
-            $key = implode('.', $keys);
-
-            return static::remove($arr[$currKey], $key);
+            return static::remove($arr[$currKey], implode('.', $keys));
         } else {
             unset($arr[$currKey]);
         }
@@ -284,11 +305,10 @@ class BaseArr
      *
      * @param array|ArrayAccess $arr
      * @param array|string      $key
-     * @param bool              $useDotNotation
      *
      * @return bool
      */
-    public static function has($arr, $key, $useDotNotation = true)
+    public static function has($arr, $key)
     {
         if (!static::isArray($arr)) {
             throw new Exception('Arr::has() expects parameter 1 to be an array or ArrayAccess object, %s given', Php::getDataType($arr));
@@ -300,17 +320,17 @@ class BaseArr
                     return false;
                 }
             }
-        } else {
-            $keys = $useDotNotation ? explode('.', $key) : array($key);
 
-            foreach ($keys as $key) {
-                if ((is_array($arr) && array_key_exists($key, $arr)) ||
-                    ($arr instanceof ArrayAccess && $arr->offsetExists($key))
-                ) {
-                    $arr = $arr[$key];
-                } else {
-                    return false;
-                }
+            return true;
+        }
+
+        $keys = explode('.', $key);
+
+        foreach ($keys as $key) {
+            if ((is_array($arr) && array_key_exists($key, $arr)) || ($arr instanceof ArrayAccess && $arr->offsetExists($key))) {
+                $arr = $arr[$key];
+            } else {
+                return false;
             }
         }
 
@@ -343,6 +363,32 @@ class BaseArr
     }
 
     /**
+     * Normalizes an array's keys and values.
+     *
+     *     $arr = array(
+     *         'one'   => 'one',
+     *         'two',
+     *         'three' => 'three'
+     *     );
+     *
+     *     // Before
+     *     Array
+     *     (
+     *         [one] => one
+     *         [0] => two
+     *         [three] => three
+     *     )
+     *
+     *     $arr = Arr::normalize($arr, 123);
+     *
+     *     // After
+     *     Array
+     *     (
+     *         [one] => one
+     *         [two] => 123
+     *         [three] => three
+     *     )
+     *
      * @param array $arr
      * @param mixed $default
      *
@@ -362,5 +408,15 @@ class BaseArr
         }
 
         return $newArr;
+    }
+
+    /**
+     * @param mixed $value
+     *
+     * @return array
+     */
+    public static function asArray($value)
+    {
+        return is_array($value) ? $value : array($value);
     }
 }

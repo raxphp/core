@@ -2,12 +2,13 @@
 
 namespace Rax\Http\Base;
 
-use Rax\Data\Data;
+use Rax\Config\Config;
 use Rax\Helper\Arr;
 use Rax\Http\Request;
-use Rax\Data\ArrObj;
+use Rax\Config\ArrObj;
 use Rax\Mvc\MatchedRoute;
 use RuntimeException;
+use UnexpectedValueException;
 
 /**
  * @author  Gregorio Ramirez <goyocode@gmail.com>
@@ -15,7 +16,7 @@ use RuntimeException;
  */
 class BaseRequest
 {
-    // HTTP Methods
+    // HTTP methods
     const GET     = 'GET';
     const POST    = 'POST';
     const PUT     = 'PUT';
@@ -24,6 +25,11 @@ class BaseRequest
     const OPTIONS = 'OPTIONS';
     const TRACE   = 'TRACE';
     const CONNECT = 'CONNECT';
+
+    /**
+     * @var ArrObj
+     */
+    protected $config;
 
     /**
      * @var array
@@ -56,13 +62,6 @@ class BaseRequest
     protected $method;
 
     /**
-     * Is the server behind a trusted proxy?
-     *
-     * @var bool
-     */
-    protected $proxyTrusted;
-
-    /**
      * Whitelist of trusted proxy server IPs.
      *
      * @var array
@@ -90,13 +89,13 @@ class BaseRequest
     protected $action;
 
     /**
+     * @param Config  $config
      * @param array $query
      * @param array $post
      * @param array $server
      * @param array $attributes
-     * @param Data  $config
      */
-    public function __construct(array $query = null, array $post = null, array $server = null, array $attributes = array(), Data $config)
+    public function __construct(Config $config, array $query = null, array $post = null, array $server = null, array $attributes = array())
     {
         if (null === $query) {
             $query = $_GET;
@@ -110,23 +109,23 @@ class BaseRequest
             $server = $_SERVER;
         }
 
+        $this->config     = $config->get('request');
         $this->query      = $query;
         $this->post       = $post;
         $this->server     = $server;
         $this->attributes = $attributes;
-        $this->config     = $config;
     }
 
     /**
-     * @param array|string $name
+     * @param array|string $key
      * @param mixed        $default
      * @param bool         $useDotNotation
      *
      * @return mixed
      */
-    public function getQuery($name = null, $default = null, $useDotNotation = true)
+    public function getQuery($key = null, $default = null, $useDotNotation = true)
     {
-        return Arr::get($this->query, $name, $default, $useDotNotation);
+        return Arr::get($this->query, $key, $default, $useDotNotation);
     }
 
     /**
@@ -172,11 +171,13 @@ class BaseRequest
      *
      * @return mixed
      */
-    public function getParam($key = null, $default = null, $useDotNotation = true)
+    public function get($key = null, $default = null, $useDotNotation = true)
     {
-        return $this->getPost($key, function() use($key, $default, $useDotNotation) {
+        $fallback = function() use($key, $default, $useDotNotation) {
             return $this->getQuery($key, $default, $useDotNotation);
-        }, $useDotNotation);
+        };
+
+        return $this->getPost($key, $fallback, $useDotNotation);
     }
 
     /**
@@ -240,6 +241,14 @@ class BaseRequest
     }
 
     /**
+     * Gets a request header value.
+     *
+     * Use Camel-Dash for the header name, e.g. "User-Agent", not "user_agent".
+     *
+     *     $userAgent = $request->getHeader('User-Agent');
+     *
+     * @link http://en.wikipedia.org/wiki/List_of_HTTP_header_fields#Requests
+     *
      * @param array|string $key
      * @param mixed        $default
      * @param bool         $useDotNotation
@@ -249,66 +258,86 @@ class BaseRequest
     public function getHeader($key = null, $default = null, $useDotNotation = true)
     {
         if (null === $this->headers) {
-            $this->headers = $this->parseHeaders($this->server);
+            $this->loadHeaders($this->server);
         }
 
         return Arr::get($this->headers, $key, $default, $useDotNotation);
     }
 
     /**
+     * Checks if a request header exists.
+     *
+     *     if ($request->hasHeader('Cache-Control')) {
+     *
      * @param array|string $key
-     * @param string       $delimiter
+     * @param bool         $useDotNotation
      *
      * @return bool
      */
-    public function hasHeader($key, $delimiter = null)
+    public function hasHeader($key, $useDotNotation = true)
     {
         if (null === $this->headers) {
-            $this->headers = $this->parseHeaders($this->server);
+            $this->loadHeaders($this->server);
         }
 
-        return Arr::has($this->headers, $key, $delimiter);
+        return Arr::has($this->headers, $key, $useDotNotation);
     }
 
     /**
+     * Loads the request headers.
+     *
+     * Normalizes the header names: HTTP_USER_AGENT -> User-Agent
+     *
+     * @link http://en.wikipedia.org/wiki/List_of_HTTP_header_fields#Requests
+     *
      * @param array $server
      *
-     * @return array
+     * @return $this
      */
-    public function parseHeaders(array $server)
+    protected function loadHeaders(array $server)
     {
-        $headers = array();
-
         foreach ($server as $key => $value) {
             if (0 === strpos($key, 'HTTP_')) {
-                $name = str_replace('_', ' ', strtolower(substr($key, 5)));
+                // e.g. HTTP_USER_AGENT -> User-Agent
+                $name = substr($key, 5);
+                $name = str_replace('_', ' ', strtolower($name));
                 $name = str_replace(' ', '-', ucwords($name));
             } elseif (0 === strpos($key, 'CONTENT_')) {
+                // e.g. CONTENT_LENGTH -> Content-Length
                 $name = substr($key, 8);
-                $name = 'Content-' . (($name == 'MD5') ? $name : ucfirst(strtolower($name)));
+                $name = ('MD5' === $name) ? $name : ucfirst(strtolower($name));
+                $name = 'Content-'.$name;
             } else {
                 continue;
             }
 
-            $headers[$name] = $value;
+            $this->headers[$name] = $value;
         }
 
-        return $headers;
+        return $this;
     }
 
     /**
-     * @return string
+     * Gets the request method.
+     *
+     *     $method = $request->getMethod();
+     *
+     * @link http://www.w3.org/Protocols/rfc2616/rfc2616-sec9.html
+     *
+     * @return string E.g. "POST".
      */
     public function getMethod()
     {
-        if (null === $this->method) {
-            $this->method = $this->getServer('REQUEST_METHOD', static::GET);
-        }
-
-        return $this->method;
+        return $this->getServer('REQUEST_METHOD', static::GET);
     }
 
     /**
+     * Checks if the supplied method is the current request method.
+     *
+     * Use UPPERCASE for the method name, e.g. "POST", not "post".
+     *
+     *     if ($request->isMethod(Request::POST)) {
+     *
      * @param string $method
      *
      * @return bool
@@ -319,6 +348,10 @@ class BaseRequest
     }
 
     /**
+     * Checks if the request method is "POST".
+     *
+     *     if ($request->isPost()) {
+     *
      * @return bool
      */
     public function isPost()
@@ -327,29 +360,23 @@ class BaseRequest
     }
 
     /**
-     * Checks if the request is ajax.
+     * Checks if the request was done through Ajax.
      *
-     *     if ($request->isAjax())
-     *
-     *     {{ request.isAjax() }}
+     *     if ($request->isAjax()) {
      *
      * @return bool
      */
     public function isAjax()
     {
-        return ('XMLHttpRequest' === $this->getServer('HTTP_X_REQUESTED_WITH'));
+        return ('XMLHttpRequest' === $this->getHeader('X-Requested-With'));
     }
 
     /**
      * Gets the user agent string.
      *
-     * e.g. Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/30.0.1599.101 Safari/537.36
-     *
      *     $userAgent = $request->getUserAgent();
      *
-     *     {{ request.getUserAgent() }}
-     *
-     * @return string
+     * @return string E.g. "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWeb...".
      */
     public function getUserAgent()
     {
@@ -357,106 +384,234 @@ class BaseRequest
     }
 
     /**
-     * Gets the server ip.
+     * Gets the server's IP address.
      *
-     * e.g. 192.168.0.25
+     *     $serverIp = $request->getServerIp();
      *
-     *     $request->getServerIp();
-     *
-     *     {{ request.getServerIp() }}
-     *
-     * @return string
+     * @return string E.g. "192.168.0.25".
      */
     public function getServerIp()
     {
         return $this->getServer('SERVER_ADDR');
     }
 
+    /**
+     * Gets the client IP address, or IP address chain in case the server is
+     * behind a proxy.
+     *
+     * If the server is behind a proxy, it is your responsibility to forward
+     * the real client IP from the proxy using the X-Forwarded-For header in the
+     * following manner:
+     *
+     *     X-Forwarded-For: Client IP, Proxy IP 1, Proxy IP 2, etc
+     *
+     * E.g. if you're using Varnish as a reverse caching proxy and it is the
+     * only proxy between the client and the web server, then you can use the
+     * following config:
+     *
+     *     set req.http.X-Forwarded-For = client.ip;
+     *
+     * However if you have a proxy chain, the next proxy can have the following:
+     *
+     *     set req.http.X-Forwarded-For = req.http.X-Forwarded-For + ", " + client.ip;
+     *
+     * You must fully trust or have complete control over the proxies using
+     * this header as it can be easily spoofed. To enable its usage set the
+     * "request.proxyTrusted" config value to true and define the list of
+     * trusted proxies in "request.trustedProxies".
+     *
+     *     $clientIps = $request->getClientIps();
+     *
+     * @link http://en.wikipedia.org/wiki/X-Forwarded-For
+     * @throws RuntimeException
+     *
+     * @return array|string
+     */
     public function getClientIps()
     {
         $clientIp = $this->getServer('REMOTE_ADDR');
 
-        if ($this->isProxyTrusted() && in_array($clientIp, $this->getTrustedProxies())) {
-            if (!$clientIp = $this->getHeader('X-Forwarded-For')) {
-                throw new RuntimeException('The client IP was not forwarded by the reverse proxy');
-            }
-
-            return trim(current(explode(',', $clientIp)));
+        if (!$this->isProxyTrusted() || !($headerName = $this->config->get('proxy.header.for'))) {
+            return array($clientIp);
         }
 
-        return $clientIp;
+        if (!$clientIps = $this->getHeader($headerName)) {
+            throw new RuntimeException('The client IP was not forwarded by the proxy');
+        }
+
+        $clientIps   = array_filter(array_map('trim', explode(',', $clientIps)));
+        $clientIps[] = $clientIp;
+
+        return $clientIps;
     }
 
     /**
      * Gets the client's IP address.
      *
-     * If the server is behind a reverse proxy, you will need to set the
-     * "request.proxyTrusted" config value to "true" and add the reverse proxies
-     * to the list of "request.trustedProxies". Lastly, make sure you forward
-     * the client's IP through the "X-Forwarded-For" request header.
-     *
-     * e.g. 192.168.0.3
-     *
      *     $clientIp = $request->getClientIp();
-     *
-     *     {{ request.getClientIp() }}
      *
      * @throws RuntimeException
      *
-     * @return string
+     * @return string E.g. "192.168.0.3".
      */
     public function getClientIp()
     {
-        $clientIp = $this->getServer('REMOTE_ADDR');
+        $clientIps = $this->getClientIps();
 
-        if ($this->isProxyTrusted() && in_array($clientIp, $this->getTrustedProxies())) {
-            if (!$clientIp = $this->getHeader('X-Forwarded-For')) {
-                throw new RuntimeException('The client IP was not forwarded by the reverse proxy');
-            }
-
-            return trim(current(explode(',', $clientIp)));
-        }
-
-        return $clientIp;
+        return $clientIps[0];
     }
 
     /**
+     * Gets the proxy IP addresses.
+     *
+     *     $proxyIps = $request->getProxyIps();
+     *
+     * @return array|bool
+     */
+    public function getProxyIps()
+    {
+        if (!$this->isProxyTrusted()) {
+            return false;
+        }
+
+        $clientIps = $this->getClientIps();
+
+        // The first IP is removed as it is the real client IP
+        array_shift($clientIps);
+
+        return $clientIps;
+    }
+
+    /**
+     * Gets the proxy IP address.
+     *
+     *     $proxyIp = $request->getProxyIp();
+     *
+     * @return string|bool
+     */
+    public function getProxyIp()
+    {
+        if (!$this->isProxyTrusted()) {
+            return false;
+        }
+
+        $proxyIps = $this->getProxyIps();
+
+        return end($proxyIps);
+    }
+
+    /**
+     * Checks if the proxy is trusted.
+     *
+     *     if ($request->isProxyTrusted()) {
+     *
      * @return bool
      */
     public function isProxyTrusted()
     {
-        if (null === $this->proxyTrusted) {
-            $this->proxyTrusted = $this->config->get('proxyTrusted');
+        if (!$this->config->get('proxy.isTrusted')) {
+            return false;
         }
 
-        return $this->proxyTrusted;
+        if (!in_array($this->getServer('REMOTE_ADDR'), (array) $this->config->get('proxy.ip'))) {
+            return false;
+        }
+
+        return true;
     }
 
     /**
-     * @return array
-     */
-    public function getTrustedProxies()
-    {
-        if (null === $this->trustedProxies) {
-            $this->trustedProxies = $this->config->get('trustedProxies');
-        }
-
-        return $this->trustedProxies;
-    }
-
-    /**
+     * Checks if the request was done through HTTPS.
+     *
+     *     if ($request->isSecure()) {
+     *
      * @return bool
      */
     public function isSecure()
     {
-        return (
-            filter_var($this->getServer('HTTPS'), FILTER_VALIDATE_BOOLEAN) ||
-            (
-                $this->setTrustProxy() && (
-                    filter_var($this->getServer('HTTP_SSL_HTTPS'), FILTER_VALIDATE_BOOLEAN) ||
-                    filter_var($this->getServer('HTTP_X_FORWARDED_PROTO'), FILTER_VALIDATE_BOOLEAN)
-                ))
-        );
+        if ($this->isProxyTrusted() && ($headerName = $this->config->get('proxy.header.proto'))) {
+            return ('https' === $this->getHeader($headerName));
+        }
+
+        return filter_var($this->getServer('HTTPS'), FILTER_VALIDATE_BOOLEAN);
+    }
+
+    /**
+     * Gets the URI scheme.
+     *
+     *     $scheme = $request->getScheme(); // "http"
+     *
+     * @return string Either "http" or "https".
+     */
+    public function getScheme()
+    {
+        return $this->isSecure() ? 'https' : 'http';
+    }
+
+    /**
+     * Gets the host name.
+     *
+     *     $host = $request->getHost();
+     *
+     * @throws UnexpectedValueException
+     *
+     * @return string
+     */
+    public function getHost()
+    {
+        if ($this->isProxyTrusted() && ($headerName = $this->config->get('proxy.header.host')) && ($host = $this->getHeader($headerName))) {
+            // $host is already set above and checked for a value
+        } else {
+            $host = $this->getHeader('Host');
+        }
+
+        // Remove port and normalize casing
+        $host = strtolower(preg_replace('/:\d+$/D', '', trim($host)));
+
+        // Check for invalid characters
+        if (!preg_match('/^[-._a-z0-9]+$/D', $host)) {
+            throw new UnexpectedValueException(sprintf('Invalid Host "%s"', $host));
+        }
+
+        if (!preg_match('/'.$this->config->get('trusted.host').'/D', $host)) {
+            throw new UnexpectedValueException(sprintf('Untrusted Host "%s"', $host));
+        }
+
+        return $host;
+    }
+
+    /**
+     * Gets the port number.
+     *
+     *     $port = $request->getPort();
+     *
+     * @throws UnexpectedValueException
+     *
+     * @return string
+     */
+    public function getPort()
+    {
+        if ($this->isProxyTrusted()) {
+            if (($headerName = $this->config->get('proxy.header.port')) && ($header = $this->getHeader($headerName))) {
+                return (int) $header;
+            }
+
+            if (($headerName = $this->config->get('proxy.header.proto')) && ('https' === $this->getHeader($headerName))) {
+                return 443;
+            }
+        }
+
+        if (preg_match('/:(\d+)$/D', $this->getHeader('Host'), $matches)) {
+            $port = (int) $matches[1];
+
+            if (!in_array($port, (array) $this->config->get('trusted.port'))) {
+                throw new UnexpectedValueException(sprintf('Untrusted port "%s"', $port));
+            }
+
+            return $port;
+        }
+
+        return $this->isSecure() ? 443 : 80;
     }
 
     /**

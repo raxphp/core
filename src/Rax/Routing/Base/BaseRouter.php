@@ -4,13 +4,11 @@ namespace Rax\Routing\Base;
 
 use ArrayAccess;
 use Rax\Container\Container;
-use Rax\Data\Data;
+use Rax\Config\Config;
 use Rax\Helper\Arr;
-use Rax\Http\Response;
-use Rax\Mvc\MatchedRoute;
+use Rax\Routing\MatchedRoute;
 use Rax\Routing\Route;
 use Rax\Http\Request;
-use Rax\Mvc\Service;
 
 /**
  * @author    Gregorio Ramirez <goyocode@gmail.com>
@@ -31,9 +29,9 @@ class BaseRouter
 
     /**
      * @param Container $container
-     * @param Data    $config
+     * @param Config    $config
      */
-    public function __construct(Container $container, Data $config)
+    public function __construct(Container $container, Config $config)
     {
         $this->container = $container;
         $this->load($config->get('routes'));
@@ -106,17 +104,18 @@ class BaseRouter
      */
     public function matchRoute(Route $route, Request $request)
     {
-        if (!$this->filterRoute($route)) {
+        if (!$this->filter($route)) {
             return false;
         }
 
-        if (!preg_match($route->getRegex(), $request->getUri(), $matches)) {
+        if (!preg_match($route->getPattern(), $request->getUri(), $matches)) {
             return false;
         }
 
         array_shift($matches);
 
         $params = $route->getDefaults();
+
         foreach ($matches as $key => $value) {
             if (!is_int($key)) {
                 $params[$key] = $value;
@@ -127,18 +126,21 @@ class BaseRouter
     }
 
     /**
-     * Apply all the filters defined by the route.
+     * Checks if the route passes all the filters.
      *
      * @param Route $route
      *
      * @return bool
      */
-    public function filterRoute(Route $route)
+    public function filter(Route $route)
     {
         foreach ($route->getFilters() as $name => $value) {
-            $values = array('value' => $value, 'route' => $route);
+            $values = array(
+                'value' => $value,
+                'route' => $route,
+            );
 
-            $filter = $this->container->get($name.'RouteFilter', $fqn = null, $values);
+            $filter = $this->container->getById($name.'RouteFilter', $values);
 
             if (!$this->container->call($filter, 'filter', $values)) {
                 return false;
@@ -147,4 +149,5 @@ class BaseRouter
 
         return true;
     }
+
 }
