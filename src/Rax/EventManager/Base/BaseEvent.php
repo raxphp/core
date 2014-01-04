@@ -6,6 +6,8 @@ use Rax\EventManager\Observer;
 use Rax\Helper\Arr;
 
 /**
+ * Event represents an event, and manages its state and observer chain.
+ *
  * @author  Gregorio Ramirez <goyocode@gmail.com>
  * @license http://opensource.org/licenses/BSD-3-Clause
  */
@@ -22,14 +24,24 @@ class BaseEvent
     protected $params = array();
 
     /**
-     * @var bool
-     */
-    protected $stopped = false;
-
-    /**
      * @var Observer[]
      */
-    protected $observers;
+    protected $observers = array();
+
+    /**
+     * @var bool
+     */
+    protected $stopPropagation = false;
+
+    /**
+     * @var bool
+     */
+    protected $triggered = false;
+
+    /**
+     * @var int
+     */
+    protected $triggerCount = 0;
 
     /**
      * @param string $name
@@ -42,6 +54,10 @@ class BaseEvent
     }
 
     /**
+     * Sets the event's name.
+     *
+     *     $event->setName('bundle.eventName');
+     *
      * @param string $name
      *
      * @return $this
@@ -54,6 +70,10 @@ class BaseEvent
     }
 
     /**
+     * Gets the event's name.
+     *
+     *     $eventName = $event->getName(); // "bundle.eventName"
+     *
      * @return string
      */
     public function getName()
@@ -62,6 +82,18 @@ class BaseEvent
     }
 
     /**
+     * Sets the event parameters.
+     *
+     * The parameters are usually set when the event gets triggered.
+     *
+     *     $eventManager->trigger('bundle.eventName', array('foo' => $foo));
+     *
+     * NOTE: Using this method will override the original parameters that were
+     * passed in through the {@see EventManager::trigger} method.
+     *
+     *     // $bar will override $foo from above
+     *     $event->setParams(array('foo' => $bar));
+     *
      * @param array $params
      *
      * @return $this
@@ -74,6 +106,27 @@ class BaseEvent
     }
 
     /**
+     * Sets a single event parameter.
+     *
+     *     $event->setParam('foo', $foo);
+     *
+     * @param string $key
+     * @param mixed  $value
+     *
+     * @return $this
+     */
+    public function setParam($key, $value)
+    {
+        $this->params[$key] = $value;
+
+        return $this;
+    }
+
+    /**
+     * Gets the event parameters.
+     *
+     *     $params = $event->getParams();
+     *
      * @return array
      */
     public function getParams()
@@ -82,35 +135,81 @@ class BaseEvent
     }
 
     /**
-     * @param string $name
+     * Gets a single event parameter.
+     *
+     *     $foo = $event->getParam('foo');
+     *
+     * @param string $key
      * @param mixed  $default
      *
      * @return mixed
      */
-    public function getParam($name, $default = null)
+    public function getParam($key, $default = null)
     {
-        return Arr::get($this->params, $name, $default);
+        return Arr::get($this->params, $key, $default);
     }
 
     /**
+     * Sets whether the event propagation has stopped or not.
+     *
+     *     // Stop event propagation
+     *     $event->stopPropagation();
+     *
+     *     // Re-enable event propagation
+     *     $event->setStopPropagation(true);
+     *
+     * @param bool $stopPropagation
+     *
      * @return $this
      */
-    public function stop()
+    public function setStopPropagation($stopPropagation)
     {
-        $this->stopped = true;
+        $this->stopPropagation = (bool) $stopPropagation;
 
         return $this;
     }
 
     /**
-     * @return bool
+     * Stops the event propagation.
+     *
+     *     // Stop subsequent observers down the chain from triggering
+     *     $event->stopPropagation();
+     *
+     *     // Alternative, in case the value is dynamic
+     *     $event->setStopPropagation($stopPropagation);
+     *
+     * @return $this
      */
-    public function isStopped()
+    public function stopPropagation()
     {
-        return $this->stopped;
+        $this->stopPropagation = true;
+
+        return $this;
     }
 
     /**
+     * Checks if the event propagation has stopped.
+     *
+     *     if ($event->isPropagationStopped()) {
+     *
+     * @return bool
+     */
+    public function isPropagationStopped()
+    {
+        return $this->stopPropagation;
+    }
+
+    /**
+     * Sets the event observer chain.
+     *
+     * NOTE: Observers are defined in the event configuration, and single
+     * observers can be added with {@see EventManager::on}. Use this method
+     * to override all the registered observers.
+     *
+     *     $event->setObservers(array(
+     *         new Observer(fooObserver),
+     *     ));
+     *
      * @param Observer[] $observers
      *
      * @return $this
@@ -123,6 +222,10 @@ class BaseEvent
     }
 
     /**
+     * Gets the event observer chain.
+     *
+     *     $observers = $event->getObservers();
+     *
      * @return Observer[]
      */
     public function getObservers()
@@ -131,13 +234,72 @@ class BaseEvent
     }
 
     /**
-     * array(
-     *     // Default values are as follow:
-     *     'fooObserver' => array('enabled' => true, 'prepend' => false),
+     * Sets the whether the event has triggered or not.
      *
-     *     // Omitting a config array will fallback to the default values
-     *     'barObserver',
-     * ),
+     * NOTE: The event's triggered state will be managed by the EventManager.
+     *
+     *     $event->setTriggered(true);
+     *
+     * @param $triggered
+     *
+     * @return $this
+     */
+    public function setTriggered($triggered)
+    {
+        $this->triggered = $triggered;
+
+        return $this;
+    }
+
+    /**
+     * Checks if the event has triggered.
+     *
+     *     if ($event->isTriggered()) {
+     *
+     * Use {@see Event::getTriggerCount} to get the number of times the event
+     * has triggered.
+     *
+     * @return bool
+     */
+    public function isTriggered()
+    {
+        return $this->triggered;
+    }
+
+    /**
+     * Increments the event's trigger count by one.
+     *
+     *     $event->incrementTriggerCount();
+     *
+     * @return $this
+     */
+    public function incrementTriggerCount()
+    {
+        $this->triggerCount++;
+
+        return $this;
+    }
+
+    /**
+     * Gets the number of times the event has triggered.
+     *
+     *     $triggerCount = $event->getTriggerCount();
+     *
+     * @return int
+     */
+    public function getTriggerCount()
+    {
+        return $this->triggerCount;
+    }
+
+    /**
+     * Loads the observers defined in the configuration.
+     *
+     * NOTE: The observers will be loaded automatically by the EventManager.
+     *
+     *     $event->loadObservers(array(
+     *         'fooObserver',
+     *     ));
      *
      * @param array $observers
      *
