@@ -11,6 +11,11 @@ final class CoreEvent
     /**
      * @var string
      */
+    const APP = 'core.app';
+
+    /**
+     * @var string
+     */
     const STARTUP = 'core.startup';
 
     /**

@@ -5,6 +5,7 @@ namespace Rax\EventManager\Base;
 use Rax\Config\ArrObj;
 use Rax\Container\Container;
 use Rax\Config\Config;
+use Rax\EventManager\CoreEvent;
 use Rax\EventManager\Event;
 use Rax\Helper\Arr;
 
@@ -50,6 +51,18 @@ class BaseEventManager
     public function getConfig()
     {
         return $this->config;
+    }
+
+    /**
+     * Gets the event names.
+     *
+     *     $eventNames = $eventManager->getEventNames();
+     *
+     * @return array
+     */
+    public function getEventNames()
+    {
+        return array_keys($this->getConfig()->asArray());
     }
 
     /**
@@ -105,20 +118,20 @@ class BaseEventManager
     }
 
     /**
-     * @param string $name
+     * @param string $eventName
      * @param array  $params
      *
      * @return $this
      */
-    public function trigger($name, array $params = array())
+    public function trigger($eventName, array $params = array())
     {
         // Check if the event exists and is enabled
-        if (!isset($this->config[$name]) || !Arr::get($this->config[$name], 'enabled', true)) {
+        if (!isset($this->config[$eventName]) || !Arr::get($this->config[$eventName], 'enabled', true)) {
             return false;
         }
 
-        $event = new Event($name, $params);
-        $event->loadObservers(Arr::normalize($this->config[$name], array()));
+        $event = new Event($eventName, $params);
+        $event->loadObservers(Arr::normalize($this->config[$eventName], array()));
 
         // The "event" service always points to the latest triggered event
         $this->container->set($event);
@@ -139,8 +152,8 @@ class BaseEventManager
 
         $event->setTriggered(true);
 
-        if ('core.eventTriggered' !== $name) {
-            $this->trigger('core.eventTriggered');
+        if (CoreEvent::EVENT_TRIGGERED !== $eventName) {
+            $this->trigger(CoreEvent::EVENT_TRIGGERED);
         }
 
         return $this;

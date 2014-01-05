@@ -15,9 +15,11 @@ use ReflectionFunction;
 use ReflectionFunctionAbstract;
 use ReflectionMethod;
 use Symfony\Component\Finder\Finder;
+use Symfony\Component\Finder\SplFileInfo;
 
 /**
- * @property Cfs cfs
+ * @property Cfs    cfs
+ * @property Config config
  *
  * @author  Gregorio Ramirez <goyocode@gmail.com>
  * @license http://opensource.org/licenses/BSD-3-Clause
@@ -27,12 +29,12 @@ class BaseContainer
     /**
      * @var array
      */
-    protected $services;
+    protected $service;
 
     /**
      * @var array
      */
-    protected $aliases;
+    protected $alias;
 
     /**
      * @var array
@@ -42,7 +44,7 @@ class BaseContainer
     /**
      * @var array
      */
-    protected $proxies;
+    protected $proxy;
 
     /**
      * @var array
@@ -59,22 +61,10 @@ class BaseContainer
      */
     public function __construct(Config $config)
     {
-        $this->services  = $config->get('container/services');
-        $this->aliases   = $config->get('container/aliases');
+        $this->service   = $config->get('container/service');
+        $this->alias     = $config->get('container/alias');
         $this->freshness = $config->get('container/freshness');
-        $this->proxies   = $config->get('container/proxies');
-    }
-
-    /**
-     * @param array $services
-     *
-     * @return $this
-     */
-    public function setServices(array $services)
-    {
-        $this->services = $services;
-
-        return $this;
+        $this->proxy     = $config->get('container/proxy');
     }
 
     /**
@@ -82,19 +72,7 @@ class BaseContainer
      */
     public function getServices()
     {
-        return $this->services;
-    }
-
-    /**
-     * @param array $aliases
-     *
-     * @return $this
-     */
-    public function setAliases(array $aliases)
-    {
-        $this->aliases = $aliases;
-
-        return $this;
+        return $this->service;
     }
 
     /**
@@ -102,19 +80,7 @@ class BaseContainer
      */
     public function getAliases()
     {
-        return $this->aliases;
-    }
-
-    /**
-     * @param array $freshness
-     *
-     * @return $this
-     */
-    public function setFreshness(array $freshness)
-    {
-        $this->freshness = $freshness;
-
-        return $this;
+        return $this->alias;
     }
 
     /**
@@ -126,35 +92,11 @@ class BaseContainer
     }
 
     /**
-     * @param array $proxies
-     *
-     * @return $this
-     */
-    public function setProxies(array $proxies)
-    {
-        $this->proxies = $proxies;
-
-        return $this;
-    }
-
-    /**
      * @return array
      */
     public function getProxies()
     {
-        return $this->proxies;
-    }
-
-    /**
-     * @param array $lookup
-     *
-     * @return $this
-     */
-    public function setLookup(array $lookup)
-    {
-        $this->lookup = $lookup;
-
-        return $this;
+        return $this->proxy;
     }
 
     /**
@@ -163,18 +105,6 @@ class BaseContainer
     public function getLookup()
     {
         return $this->lookup;
-    }
-
-    /**
-     * @param array $shared
-     *
-     * @return $this
-     */
-    public function setShared(array $shared)
-    {
-        $this->shared = $shared;
-
-        return $this;
     }
 
     /**
@@ -209,7 +139,7 @@ class BaseContainer
     public function set($id, $service = null)
     {
         if ($service instanceof Closure) {
-            $this->services[$id] = $service;
+            $this->service[$id] = $service;
         } elseif (is_object($id)) {
             $this->shared[lcfirst(Php::getClassName($id))] = $id;
         } else {
@@ -277,23 +207,22 @@ class BaseContainer
     public function get($id = null, $fqn = null, array $values = array())
     {
         if (null === $id) {
-
         }
 
         if (isset($this->shared[$id])) {
             return $this->shared[$id];
         }
 
-        if (isset($this->services[$id])) {
-            return ($this->shared[$id] = $this->services[$id]());
+        if (isset($this->service[$id])) {
+            return ($this->shared[$id] = $this->service[$id]());
         }
 
         if (null === $fqn) {
             $fqn = Arr::get($this->lookup, $id);
         }
 
-        if ($fqn && isset($this->aliases[$fqn])) {
-            $fqn = $this->aliases[$fqn];
+        if ($fqn && isset($this->alias[$fqn])) {
+            $fqn = $this->alias[$fqn];
         }
 
         if ($fqn && ($service = $this->build($fqn, $values))) {
@@ -462,26 +391,26 @@ class BaseContainer
             ->in($this->cfs->findDirs('src'))
             ->name('*.php')
             ->notName('Base*')
-            ->notName('*Interface.php')
-        ;
+            ->notName('*Interface.php');
 
         $lookup = array();
 
         foreach ($this->config->get('container/lookup') as $id => $fqn) {
-            if (empty($this->services[$id])) {
-                $lookup[$id] = Arr::get($this->aliases, $fqn, $fqn);
+            if (empty($this->service[$id])) {
+                $lookup[$id] = Arr::get($this->alias, $fqn, $fqn);
             }
         }
 
         $parser = new PhpParser();
 
+        /** @var $file SplFileInfo */
         foreach ($finder as $file) {
             $parsed = $parser->parse($file->getContents());
 
             if ($parsed->getClass() && $parsed->getFqn()) {
                 $id = lcfirst($parsed->getClass());
 
-                if (empty($this->services[$id]) && empty($lookup[$id])) {
+                if (empty($this->service[$id]) && empty($lookup[$id])) {
                     $lookup[$id] = $parsed->getFqn();
                 }
             }
@@ -493,6 +422,10 @@ class BaseContainer
     }
 
     /**
+     * Proxies to {@see Container::set}.
+     *
+     *     $container->foo = $foo;
+     *
      * @param string         $id
      * @param object|Closure $service
      */
@@ -502,6 +435,10 @@ class BaseContainer
     }
 
     /**
+     * Proxies to {@see Container::get}.
+     *
+     *     $autoload = $container->autoload;
+     *
      * @param string $id
      *
      * @return mixed

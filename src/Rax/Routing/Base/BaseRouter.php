@@ -34,7 +34,7 @@ class BaseRouter
     public function __construct(Container $container, Config $config)
     {
         $this->container = $container;
-        $this->load($config->get('routes'));
+        $this->load($config->get('route'));
     }
 
     /**
