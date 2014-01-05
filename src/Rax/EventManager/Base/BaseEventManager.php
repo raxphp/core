@@ -12,6 +12,9 @@ use Rax\Helper\Arr;
 /**
  * EventManager manages and triggers events.
  *
+ * NOTE: This class maintains array configuration, look at the EventLog for the
+ * actual objects.
+ *
  * @author  Gregorio Ramirez <goyocode@gmail.com>
  * @license http://opensource.org/licenses/BSD-3-Clause
  */
@@ -38,12 +41,28 @@ class BaseEventManager
     }
 
     /**
-     * Gets the EventManager's maintained configuration.
+     * Sets the event runtime config.
+     *
+     *     $eventManager->setConfig($config);
+     *
+     * @param ArrObj $config
+     *
+     * @return $this
+     */
+    public function setConfig($config)
+    {
+        $this->config = $config;
+
+        return $this;
+    }
+
+    /**
+     * Gets the maintained event config.
      *
      *     // Get the original event configuration
      *     $eventConfig = $config->get('event');
      *
-     *     // Get the config plus any modifications that been made at runtime
+     *     // Get the above config plus any modifications that've been made at runtime
      *     $eventConfig = $eventManager->getConfig();
      *
      * @return ArrObj
@@ -118,6 +137,22 @@ class BaseEventManager
     }
 
     /**
+     * Triggers an event by executing its observer chain.
+     *
+     * Events are lazyloaded, i.e. the event and observer objects are only built
+     * once the event is triggered, otherwise they remain as array configuration.
+     *
+     *     $eventManager->trigger('bundle.eventName', array('value', $value));
+     *
+     *     // Params are available through the event object
+     *     class FooObserver
+     *     {
+     *         public function trigger(Event $event)
+     *         {
+     *             $value = $event->getParam('value');
+     *         }
+     *     }
+     *
      * @param string $eventName
      * @param array  $params
      *
@@ -137,10 +172,12 @@ class BaseEventManager
         $this->container->set($event);
 
         foreach ($event->getObservers() as $observer) {
+            // The event can be stopped by any observer
             if ($event->isPropagationStopped()) {
                 break;
             }
 
+            // Observers can be disabled in the config or at runtime
             if (!$observer->isEnabled()) {
                 continue;
             }
