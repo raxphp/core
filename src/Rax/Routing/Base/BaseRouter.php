@@ -134,20 +134,15 @@ class BaseRouter
      */
     public function filter(Route $route)
     {
-        foreach ($route->getFilters() as $name => $value) {
-            $values = array(
-                'value' => $value,
-                'route' => $route,
-            );
+        foreach ($route->getFilters() as $filter => $value) {
+            // The "route" service always holds the current filtered route
+            $this->container->set($route);
 
-            $filter = $this->container->getById($name.'RouteFilter', $values);
-
-            if (!$this->container->call($filter, 'filter', $values)) {
+            if (!$this->container->call($filter.'RouteFilter', 'filter', array('value' => $value))) {
                 return false;
             }
         }
 
         return true;
     }
-
 }
