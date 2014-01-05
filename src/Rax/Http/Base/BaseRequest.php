@@ -509,7 +509,7 @@ class BaseRequest
      */
     public function isProxyTrusted()
     {
-        if (!$this->config->get('proxy.isTrusted')) {
+        if (!$this->config->get('proxy.trusted')) {
             return false;
         }
 

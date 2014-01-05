@@ -39,11 +39,6 @@ class BaseEvent
     protected $triggered = false;
 
     /**
-     * @var int
-     */
-    protected $triggerCount = 0;
-
-    /**
      * @param string $name
      * @param array  $params
      */
@@ -236,7 +231,7 @@ class BaseEvent
     /**
      * Sets the whether the event has triggered or not.
      *
-     * NOTE: The event's triggered state will be managed by the EventManager.
+     * NOTE: This will be set automatically by the EventManager.
      *
      *     $event->setTriggered(true);
      *
@@ -256,40 +251,11 @@ class BaseEvent
      *
      *     if ($event->isTriggered()) {
      *
-     * Use {@see Event::getTriggerCount} to get the number of times the event
-     * has triggered.
-     *
      * @return bool
      */
     public function isTriggered()
     {
         return $this->triggered;
-    }
-
-    /**
-     * Increments the event's trigger count by one.
-     *
-     *     $event->incrementTriggerCount();
-     *
-     * @return $this
-     */
-    public function incrementTriggerCount()
-    {
-        $this->triggerCount++;
-
-        return $this;
-    }
-
-    /**
-     * Gets the number of times the event has triggered.
-     *
-     *     $triggerCount = $event->getTriggerCount();
-     *
-     * @return int
-     */
-    public function getTriggerCount()
-    {
-        return $this->triggerCount;
     }
 
     /**
@@ -308,15 +274,18 @@ class BaseEvent
     public function loadObservers(array $observers)
     {
         foreach ($observers as $name => $params) {
-            $config = Arr::get($params, array(
+            // Default observer configuration
+            $defaults = array(
                 'name'    => $name,
                 'enabled' => true,
                 'prepend' => false,
-            ));
+            );
 
-            $observer = new Observer($config['name'], $config['enabled']);
+            $params = Arr::merge($defaults, $params);
 
-            if ($config['prepend']) {
+            $observer = new Observer($params['name'], $params['enabled']);
+
+            if ($params['prepend']) {
                 array_unshift($this->observers, $observer);
             } else {
                 $this->observers[] = $observer;

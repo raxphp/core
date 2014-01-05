@@ -1,7 +1,7 @@
 <?php
 
 /**
- *
+ * Request configuration.
  */
 return array(
     /**
@@ -38,7 +38,7 @@ return array(
         /**
          * Enable if your site is behind a proxy server.
          */
-        'isTrusted' => false,
+        'trusted' => false,
 
         /**
          * IP of the proxy server.

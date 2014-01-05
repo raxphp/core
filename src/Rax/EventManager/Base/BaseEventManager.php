@@ -2,13 +2,15 @@
 
 namespace Rax\EventManager\Base;
 
-use Rax\EventManager\CoreEvent;
+use Rax\Config\ArrObj;
 use Rax\Container\Container;
 use Rax\Config\Config;
 use Rax\EventManager\Event;
 use Rax\Helper\Arr;
 
 /**
+ * EventManager manages and triggers events.
+ *
  * @author  Gregorio Ramirez <goyocode@gmail.com>
  * @license http://opensource.org/licenses/BSD-3-Clause
  */
@@ -20,79 +22,72 @@ class BaseEventManager
     protected $container;
 
     /**
-     * @var array
+     * @var ArrObj
      */
-    protected $events = array();
-
-    /**
-     * @var Event
-     */
-    protected $event;
+    protected $config;
 
     /**
      * @param Container $container
-     * @param Config      $config
+     * @param Config    $config
      */
     public function __construct(Container $container, Config $config)
     {
         $this->container = $container;
-        $this->events    = $config->get('events');
+        $this->config    = $config->get('event');
     }
 
     /**
-     * @param array $events
+     * Gets the EventManager's maintained configuration.
      *
-     * @return $this
-     */
-    public function setEvents(array $events)
-    {
-        $this->events = $events;
-
-        return $this;
-    }
-
-    /**
-     * @return array
-     */
-    public function getEvents()
-    {
-        return $this->events;
-    }
-
-    /**
-     * @param Event $event
+     *     // Get the original event configuration
+     *     $eventConfig = $config->get('event');
      *
-     * @return $this
+     *     // Get the config plus any modifications that been made at runtime
+     *     $eventConfig = $eventManager->getConfig();
+     *
+     * @return ArrObj
      */
-    public function setEvent(Event $event)
+    public function getConfig()
     {
-        $this->event = $event;
-
-        return $this;
+        return $this->config;
     }
 
     /**
-     * @return Event
-     */
-    public function getEvent()
-    {
-        return $this->event;
-    }
-
-    /**
+     * Adds a new event observer at runtime.
+     *
+     *     // If the event doesn't exist it will be created automatically
+     *     $eventManager->on('bundle.eventName', 'fooObserver');
+     *
      * @param string $name
      * @param string $observer
+     * @param bool   $prepend
      *
      * @return $this
      */
-    public function on($name, $observer)
+    public function on($name, $observer, $prepend = false)
     {
-        $this->events[$name][] = $observer;
+        if (!isset($this->config[$name])) {
+            $this->config[$name] = array();
+        }
+
+        if ($prepend) {
+            array_unshift($this->config[$name], $observer);
+        } else {
+            $this->config[$name][] = $observer;
+        }
 
         return $this;
     }
 
     /**
+     * Removes an event, or an observer from the event's observer chain.
+     *
+     *     // Remove the event so it can't be triggered anymore
+     *     $eventManager->off('bundle.eventName');
+     *
+     *     // Remove a single observer from the observer chain
+     *     $eventManager->off('bundle.eventName', 'fooObserver');
+     *
      * @param string $name
      * @param string $observer
      *
@@ -101,9 +96,9 @@ class BaseEventManager
     public function off($name, $observer = null)
     {
         if (null === $observer) {
-            unset($this->events[$name]);
-        } elseif (false !== ($key = array_search($observer, $this->events[$name]))) {
-            unset($this->events[$name][$key]);
+            unset($this->config[$name]);
+        } elseif (false !== ($key = array_search($observer, $this->config[$name]))) {
+            unset($this->config[$name][$key]);
         }
 
         return $this;
@@ -111,41 +106,41 @@ class BaseEventManager
 
     /**
      * @param string $name
-     * @param array $params
+     * @param array  $params
      *
      * @return $this
      */
     public function trigger($name, array $params = array())
     {
-        if (empty($this->events[$name])) {
+        // Check if the event exists and is enabled
+        if (!isset($this->config[$name]) || !Arr::get($this->config[$name], 'enabled', true)) {
             return false;
         }
 
         $event = new Event($name, $params);
-        $event->loadObservers(Arr::normalize($this->events[$name], array()));
+        $event->loadObservers(Arr::normalize($this->config[$name], array()));
 
-        $this->setEvent($event);
+        // The "event" service always points to the latest triggered event
         $this->container->set($event);
 
         foreach ($event->getObservers() as $observer) {
+            if ($event->isPropagationStopped()) {
+                break;
+            }
+
             if (!$observer->isEnabled()) {
                 continue;
             }
 
-            list($id, $fqn) = $this->container->parseIdFqn($observer->getName());
+            $this->container->call($observer->getName(), 'trigger');
 
-            $service = $this->container->get($id, $fqn);
-            $this->container->call($service, 'trigger');
-
-            $observer->setTriggered(true)->setReadOnly(true);
-
-            if ($event->isStopped()) {
-                break;
-            }
+            $observer->setTriggered(true);
         }
 
-        if (CoreEvent::EVENT_TRIGGERED !== $name) {
-            $this->trigger(CoreEvent::EVENT_TRIGGERED);
+        $event->setTriggered(true);
+
+        if ('core.eventTriggered' !== $name) {
+            $this->trigger('core.eventTriggered');
         }
 
         return $this;

@@ -116,12 +116,11 @@ class BaseConfig
      * Gets a config value.
      *
      *     // One-off
-     *     $isTrusted = $config->get('request.proxy.isTrusted');
+     *     $trusted = $config->get('request.proxy.trusted');
      *
      *     // Multi-access
      *     $config = $config->get('request');
-     *
-     *     $isTrusted = $config->get('proxy.isTrusted');
+     *     $trusted = $config->get('proxy.trusted');
      *
      * @param string $key
      * @param mixed  $default

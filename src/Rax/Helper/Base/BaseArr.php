@@ -365,28 +365,40 @@ class BaseArr
     /**
      * Normalizes an array's keys and values.
      *
-     *     $arr = array(
-     *         'one'   => 'one',
+     * Useful when you have mix of numeric and associative keys.
+     *
+     *     $config = array(
+     *         'one'   => array(),
      *         'two',
-     *         'three' => 'three'
+     *         'three' => array(),
      *     );
      *
      *     // Before
      *     Array
      *     (
-     *         [one] => one
+     *         [one] => Array
+     *             (
+     *             )
      *         [0] => two
-     *         [three] => three
+     *         [three] => Array
+     *             (
+     *             )
      *     )
      *
-     *     $arr = Arr::normalize($arr, 123);
+     *     $config = Arr::normalize($config, array());
      *
      *     // After
      *     Array
      *     (
-     *         [one] => one
-     *         [two] => 123
-     *         [three] => three
+     *         [one] => Array
+     *             (
+     *             )
+     *         [two] => Array
+     *             (
+     *             )
+     *         [three] => Array
+     *             (
+     *             )
      *     )
      *
      * @param array $arr
@@ -396,18 +408,16 @@ class BaseArr
      */
     public static function normalize($arr, $default = null)
     {
-        $newArr = array();
-
         foreach ($arr as $key => $value) {
-            if (is_numeric($key)) {
+            if (is_int($key)) {
                 $key   = $value;
                 $value = $default;
             }
 
-            $newArr[$key] = $value;
+            $arr[$key] = $value;
         }
 
-        return $newArr;
+        return $arr;
     }
 
     /**

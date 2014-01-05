@@ -453,24 +453,6 @@ class BaseContainer
     }
 
     /**
-     * @param string $key
-     *
-     * @return array
-     */
-    public function parseIdFqn($key)
-    {
-        if (false !== strpos($key, '\\')) {
-            $id  = lcfirst(Php::getClassName($key));
-            $fqn = $key;
-        } else {
-            $id  = $key;
-            $fqn = null;
-        }
-
-        return array($id, $fqn);
-    }
-
-    /**
      * @return $this
      */
     public function loadLookup()
