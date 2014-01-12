@@ -1,6 +1,6 @@
 <?php
 
-namespace Rax\EventManager\Base;
+namespace Rax\Event\Base;
 
 /**
  * Observer holds the name and enabled status of a single observer.

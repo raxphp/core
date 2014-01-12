@@ -1,8 +1,8 @@
 <?php
 
-namespace Rax\EventManager\Base;
+namespace Rax\Event\Base;
 
-use Rax\EventManager\Observer;
+use Rax\Event\Observer;
 use Rax\Helper\Arr;
 
 /**
@@ -40,12 +40,15 @@ class BaseEvent
 
     /**
      * @param string $name
+     * @param array  $observers
      * @param array  $params
      */
-    public function __construct($name = null, array $params = array())
+    public function __construct($name = null, array $observers = array(), array $params = array())
     {
         $this->name   = $name;
         $this->params = $params;
+
+        $this->loadObservers($observers);
     }
 
     /**
@@ -79,14 +82,12 @@ class BaseEvent
     /**
      * Sets the event parameters.
      *
-     * The parameters are usually set when the event gets triggered.
+     * The parameters are usually set when the event gets triggered:
      *
      *     $eventManager->trigger('bundle.eventName', array('foo' => $foo));
      *
-     * NOTE: Using this method will override the original parameters that were
-     * passed in through the {@see EventManager::trigger} method.
+     * NOTE: This method will override those original parameters.
      *
-     *     // $bar will override $foo from above
      *     $event->setParams(array('foo' => $bar));
      *
      * @param array $params
@@ -141,7 +142,7 @@ class BaseEvent
      */
     public function getParam($key, $default = null)
     {
-        return Arr::get($this->params, $key, $default);
+        return isset($this->params[$key]) ? $this->params[$key] : $default;
     }
 
     /**
@@ -229,6 +230,18 @@ class BaseEvent
     }
 
     /**
+     * Gets the observer names.
+     *
+     *     $observerNames = $event->getObserverNames();
+     *
+     * @return array
+     */
+    public function getObserverNames()
+    {
+        return array_keys($this->observers);
+    }
+
+    /**
      * Sets the whether the event has triggered or not.
      *
      * NOTE: This will be set automatically by the EventManager.
@@ -264,8 +277,12 @@ class BaseEvent
      * NOTE: The observers will be loaded automatically by the EventManager.
      *
      *     $event->loadObservers(array(
-     *         'fooObserver',
+     *         'fooObserver' => array(),
      *     ));
+     *
+     * Observers are stored as:
+     *
+     *     'fooObserver' => $observer,
      *
      * @param array $observers
      *
@@ -273,7 +290,7 @@ class BaseEvent
      */
     public function loadObservers(array $observers)
     {
-        foreach ($observers as $name => $params) {
+        foreach ($observers as $name => $config) {
             // Default observer configuration
             $defaults = array(
                 'name'    => $name,
@@ -281,14 +298,14 @@ class BaseEvent
                 'prepend' => false,
             );
 
-            $params = Arr::merge($defaults, $params);
+            $config = Arr::merge($defaults, $config);
 
-            $observer = new Observer($params['name'], $params['enabled']);
+            $observer = new Observer($config['name'], $config['enabled']);
 
-            if ($params['prepend']) {
-                array_unshift($this->observers, $observer);
+            if ($config['prepend']) {
+                Arr::unshift($this->observers, $name, $observer);
             } else {
-                $this->observers[] = $observer;
+                $this->observers[$name] = $observer;
             }
         }
 

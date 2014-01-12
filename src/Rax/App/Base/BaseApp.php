@@ -2,8 +2,8 @@
 
 namespace Rax\App\Base;
 
-use Rax\EventManager\CoreEvent;
-use Rax\EventManager\EventManager;
+use Rax\Event\CoreEvent;
+use Rax\Event\EventManager;
 
 /**
  * @author  Gregorio Ramirez <goyocode@gmail.com>

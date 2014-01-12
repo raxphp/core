@@ -5,7 +5,6 @@ namespace Rax\Helper\Base;
 use ArrayAccess;
 use ArrayObject;
 use Rax\Exception\Exception;
-use Rax\Helper\Arr;
 use Rax\Helper\Php;
 
 /**
@@ -421,6 +420,10 @@ class BaseArr
     }
 
     /**
+     * Transforms a value into an array if not already.
+     *
+     *     $arr = Arr::asArray(123); // array(123)
+     *
      * @param mixed $value
      *
      * @return array

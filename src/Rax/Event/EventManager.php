@@ -1,8 +1,8 @@
 <?php
 
-namespace Rax\EventManager;
+namespace Rax\Event;
 
-use Rax\EventManager\Base\BaseEventManager;
+use Rax\Event\Base\BaseEventManager;
 
 /**
  * {@inheritdoc}

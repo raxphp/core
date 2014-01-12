@@ -18,7 +18,7 @@ class BaseConfig
     protected $loaders = array();
 
     /**
-     * @var array
+     * @var ArrObj[]
      */
     protected $config = array();
 

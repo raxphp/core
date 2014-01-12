@@ -11,9 +11,10 @@ use Rax\Routing\Route;
 use Rax\Http\Request;
 
 /**
- * @author    Gregorio Ramirez <goyocode@gmail.com>
- * @copyright Copyright (c) Gregorio Ramirez <goyocode@gmail.com>
- * @license   http://opensource.org/licenses/BSD-3-Clause BSD
+ * Router matches a route from a given request.
+ *
+ * @author  Gregorio Ramirez <goyocode@gmail.com>
+ * @license http://opensource.org/licenses/BSD-3-Clause
  */
 class BaseRouter
 {
@@ -38,11 +39,15 @@ class BaseRouter
     }
 
     /**
+     * Loads a route object array from config.
+     *
+     *     $router->load($config->get('route'));
+     *
      * @param array|ArrayAccess $routes
      *
      * @return $this
      */
-    protected function load($routes)
+    public function load($routes)
     {
         foreach ($routes as $name => $route) {
             $this->routes[$name] = new Route(
@@ -59,6 +64,12 @@ class BaseRouter
     }
 
     /**
+     * Sets the routes.
+     *
+     *     $router->setRoutes(array(
+     *         new Route('blog', '/blog', 'Blog:index'),
+     *     ));
+     *
      * @param Route[] $routes
      *
      * @return $this
@@ -71,7 +82,9 @@ class BaseRouter
     }
 
     /**
-     * Returns the routes.
+     * Gets the routes.
+     *
+     *     $routes = $router->getRoutes();
      *
      * @return Route[]
      */
@@ -81,15 +94,21 @@ class BaseRouter
     }
 
     /**
+     * Matches a route given a request.
+     *
+     * NOTE: The first match is returned, and further processing is stopped.
+     *
+     *     $matchedRoute = $router->match($request);
+     *
      * @param Request $request
      *
-     * @return MatchedRoute
+     * @return MatchedRoute|bool
      */
     public function match(Request $request)
     {
         foreach ($this->routes as $route) {
-            if ($match = $this->matchRoute($route, $request)) {
-                return $match;
+            if ($matchedRoute = $this->matchRoute($route, $request)) {
+                return $matchedRoute;
             }
         }
 
@@ -97,10 +116,14 @@ class BaseRouter
     }
 
     /**
+     * Checks if a route matches a request, if so returns a MatchedRoute object.
+     *
+     *     $matchedRoute = $router->matchRoute($route, $request);
+     *
      * @param Request $request
      * @param Route   $route
      *
-     * @return bool|MatchedRoute
+     * @return MatchedRoute|bool
      */
     public function matchRoute(Route $route, Request $request)
     {
@@ -114,19 +137,23 @@ class BaseRouter
 
         array_shift($matches);
 
-        $params = $route->getDefaults();
+        $values = $route->getDefaults();
 
         foreach ($matches as $key => $value) {
             if (!is_int($key)) {
-                $params[$key] = $value;
+                $values[$key] = $value;
             }
         }
 
-        return new MatchedRoute($route, $params);
+        return new MatchedRoute($route, $values);
     }
 
     /**
-     * Checks if the route passes all the filters.
+     * Filters a route.
+     *
+     * Checks if the route passes all its filters given the environment.
+     *
+     *     if ($router->filter($route)) {
      *
      * @param Route $route
      *
@@ -135,10 +162,7 @@ class BaseRouter
     public function filter(Route $route)
     {
         foreach ($route->getFilters() as $filter => $value) {
-            // The "route" service always holds the current filtered route
-            $this->container->set($route);
-
-            if (!$this->container->call($filter.'RouteFilter', 'filter', array('value' => $value))) {
+            if (!$this->container->call($filter.'RouteFilter', 'filter', array('value' => $value, $route))) {
                 return false;
             }
         }

@@ -116,19 +116,21 @@ class BaseContainer
     }
 
     /**
-     * Sets a service by ID.
+     * Sets a service.
      *
-     *     // Defines a new service with ID "foo" that will be lazy loaded
+     *     // Stores a new service with the ID "foo" that'll be lazy loaded
      *     $container->set('foo', function() {
+     *         // A closure ensures the object won't be constructed until needed
      *         return new Foo();
      *     });
      *
+     *     // Alternatively, you can share objects that are already built
      *     $foo = Foo();
      *
-     *     // Stores a shared object with ID "foo"
+     *     // Stores a "shared object" that will be shared through the container
      *     $container->set('foo', $foo);
      *
-     *     // Same as above, but the ID is auto-detected
+     *     // Same as above, except the ID "foo" is auto-detected
      *     $container->set($foo);
      *
      * @param string|object  $id
@@ -152,15 +154,16 @@ class BaseContainer
     /**
      * Gets a service by ID.
      *
-     * This method is only useful if you have values to pass in, otherwise
-     * use get().
+     * NOTE: This method is only useful if you have values to pass in, otherwise
+     * use {@see Container::get}.
      *
+     *     // This might be a bit more cleaner or expressive
      *     $container->getById($name.'RouteFilter', array(
      *         'value' => $value,
      *         'route' => $route,
      *     ));
      *
-     *     // Vs
+     *     // Than (Hint: notice the awkward null for the FQN)
      *     $container->get($name.'RouteFilter', null, array(
      *         'value' => $value,
      *         'route' => $route,
@@ -179,8 +182,10 @@ class BaseContainer
     /**
      * Gets a service by FQN (Fully Qualified Name).
      *
-     * The ID will be automatically determined based on the class name.
+     * Since the ID is omitted, it will be automatically determined based on
+     * the class name.
      *
+     *     // ID "request" is used
      *     $request = $container->getByFqn('Rax\Http\Request');
      *
      * @param string $fqn
@@ -233,63 +238,58 @@ class BaseContainer
     }
 
     /**
-     * @param string $fqn
-     * @param array  $values
+     * Calls anything that can be callable, transforming its function signature
+     * into an OOD (Objects On Demand) hotspot.
      *
-     * @return object
-     */
-    public function build($fqn, array $values = array())
-    {
-        $refl = new ReflectionClass($fqn);
-
-        if (!$constructor = $refl->getConstructor()) {
-            return new $fqn();
-        }
-
-        $dependencies = $this->resolveDependencies($constructor, $values);
-
-        return $refl->newInstanceArgs($dependencies);
-    }
-
-    /**
-     * Calls a closure or function or a method on a service or object.
+     * You can use this hotspot to load any object through the container using
+     * automatic dependency injection.
      *
-     * The purpose of this method is to transform the signature of the called
-     * function into an OOD (Objects On Demand) hotspot. You can use this
-     * hotspot to load any object that you need on the fly without having to
-     * build them yourself.
+     *     // If the object doesn't exist in the container it will be automatically
+     *     // created for you (including its dependencies) and shared by default
+     *     public function indexAction(Foo $foo)
      *
-     * The first param can be a service ID or FQN, the name of a function,
-     * a closure or an object.
+     *     // Shared objects (AKA singletons) are simply reused when requested
+     *     public function indexAction(Request $request)
      *
-     *     // Service ID or FQN
+     * Some hotspots are predefined for your convenience:
+     *
+     * - Controller actions e.g. indexAction()
+     * - Observers e.g. trigger()
+     * - Route filters e.g. filter()
+     *
+     * A callable can be any of the following:
+     *
+     *     // Service ID (FYI the filter method is called)
      *     $container->call('ajaxRouteFilter', 'filter');
+     *
+     *     // Service FQN
      *     $container->call('Rax\Routing\Filter\AjaxRouteFilter', 'filter');
      *
-     *     // Use an array to specify both
-     *     $service = array('id' => 'ajaxRouteFilter', 'fqn' => 'Rax/Routing/Filter/AjaxRouteFilter');
+     *     // Both
+     *     $service = array('id' => 'ajaxRouteFilter', 'fqn' => 'Rax\Routing\Filter\AjaxRouteFilter');
      *     $container->call($service, 'filter');
      *
      *     // Procedural function
      *     $container->call('functionName');
      *
      *     // Closure
-     *     $container->call(function() {
-     *         // ...
-     *     });
+     *     $container->call(function() {});
      *
      *     // Object
      *     $ajaxRouteFilter = new AjaxRouteFilter();
      *     $container->call($ajaxRouteFilter, 'filter');
      *
-     * Yse can pass along values to the function signature using the $values
-     * array. The array key will become the parameter name.
+     * You can pass values to the function signature using the $values param.
+     * The array key will become the parameter name. A param will supersede a
+     * service in case of a name collision.
      *
      *     $container->call($foo, 'bar', array('wut' => 123));
      *
-     *     public function bar($wut)
+     *     class Foo
      *     {
-     *         echo $wut; // 123
+     *         public function bar($wut)
+     *         {
+     *             echo $wut; // 123
      *
      * @throws Exception
      *
@@ -299,8 +299,10 @@ class BaseContainer
      *
      * @return mixed
      */
-    public function call($id, $method = null, array $values = array())
+    public function call($id, $method = null, $values = array())
     {
+        $values = Arr::asArray($values);
+
         if (is_string($id)) {
             if (Text::contains('\\', $id)) {
                 $service = $this->getByFqn($id, $values);
@@ -320,6 +322,25 @@ class BaseContainer
         }
 
         return $this->callMethod($service, $method, $values);
+    }
+
+    /**
+     * @param string $fqn
+     * @param array  $values
+     *
+     * @return object
+     */
+    public function build($fqn, array $values = array())
+    {
+        $reflectionClass = new ReflectionClass($fqn);
+
+        if (!$constructor = $reflectionClass->getConstructor()) {
+            return new $fqn();
+        }
+
+        $dependencies = $this->resolveDependencies($constructor, $values);
+
+        return $reflectionClass->newInstanceArgs($dependencies);
     }
 
     /**

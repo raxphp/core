@@ -1,6 +1,6 @@
 <?php
 
-namespace Rax\EventManager;
+namespace Rax\Event;
 
 /**
  * @author  Gregorio Ramirez <goyocode@gmail.com>
