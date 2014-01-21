@@ -199,7 +199,7 @@ class BaseEvent
      * Sets the event observer chain.
      *
      * NOTE: Observers are defined in the event configuration, and single
-     * observers can be added with {@see EventManager::on}. Use this method
+     * observers can be added with {@see EventManager::on()}. Use this method
      * to override all the registered observers.
      *
      *     $event->setObservers(array(

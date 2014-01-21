@@ -11,21 +11,21 @@ class BasePhpParsed
     /**
      * @var string
      */
-    protected $class;
+    protected $className;
 
     /**
      * @var string
      */
-    protected $fqn;
+    protected $namespace;
 
     /**
      * @param string $class
      *
      * @return $this
      */
-    public function setClass($class)
+    public function setClassName($class)
     {
-        $this->class = $class;
+        $this->className = $class;
 
         return $this;
     }
@@ -33,21 +33,29 @@ class BasePhpParsed
     /**
      * @return string
      */
-    public function getClass()
+    public function getClassName()
     {
-        return $this->class;
+        return $this->className;
     }
 
     /**
-     * @param string $fqn
+     * @param string $namespace
      *
      * @return $this
      */
-    public function setFqn($fqn)
+    public function setNamespace($namespace)
     {
-        $this->fqn = $fqn;
+        $this->namespace = $namespace;
 
         return $this;
+    }
+
+    /**
+     * @return string
+     */
+    public function getNamespace()
+    {
+        return $this->namespace;
     }
 
     /**
@@ -55,6 +63,6 @@ class BasePhpParsed
      */
     public function getFqn()
     {
-        return $this->fqn;
+        return $this->namespace.'\\'.$this->className;
     }
 }

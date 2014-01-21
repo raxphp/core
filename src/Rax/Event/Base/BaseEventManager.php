@@ -9,10 +9,10 @@ use Rax\Event\Event;
 use Rax\Helper\Arr;
 
 /**
- * EventManager manages and triggers events.
+ * EventManager manages event configuration and triggers events.
  *
- * NOTE: This class maintains the event config only, the actual objects are
- * stored in the EventLog.
+ * NOTE: This class maintains event configuration only, the actual objects are
+ * stored in the {@see EventLog}.
  *
  * @author  Gregorio Ramirez <goyocode@gmail.com>
  * @license http://opensource.org/licenses/BSD-3-Clause
@@ -36,11 +36,14 @@ class BaseEventManager
     public function __construct(Container $container, Config $config)
     {
         $this->container = $container;
-        $this->events    = $this->normalize($config->get('event.events'));
+
+        $this->loadEvents($config->get('event.events'));
     }
 
     /**
-     * Normalizes the observer array of all events.
+     * Loads the event configuration.
+     *
+     * Normalizes the observers so they all have an observer configuration array.
      *
      *     // Before
      *     'bundle.eventName' => array(
@@ -60,46 +63,55 @@ class BaseEventManager
      *
      * @param array $events
      *
-     * @return array
-     */
-    public function normalize(array $events = array())
-    {
-        foreach ($events as $event => $observers) {
-            $events[$event] = Arr::normalize($observers, array());
-        }
-
-        return $events;
-    }
-
-    /**
-     * Sets the event config.
-     *
-     * NOTE: The array should be formatted similar to the "event.events"
-     * config array.
-     *
-     *     $eventManager->setEvents($config);
-     *
-     * @param array $config
-     *
      * @return $this
      */
-    public function setEvents(array $config)
+    public function loadEvents(array $events = array())
     {
-        $this->events = $this->normalize($config);
+        foreach ($events as $event => $observers) {
+            $this->events[$event] = Arr::normalize($observers, array());
+        }
 
         return $this;
     }
 
     /**
-     * Gets the event config.
+     * Sets the event configuration.
      *
-     * NOTE: This method returns an event config array, look at the EventLog for
-     * the actual objects.
+     * Use the event configuration if possible to define events.
      *
-     *     // Get the original event config
+     * NOTE: A configuration array is expected. Follow the formatting of the
+     * "event.events" config.
+     *
+     *     $eventManager->setEvents(array(
+     *         CoreEvent::APP => array(
+     *             'requestObserver'
+     *         ),
+     *         CoreEvent::EVENT_TRIGGERED => array(
+     *             'eventLogObserver',
+     *         ),
+     *     ));
+     *
+     * @param array $events
+     *
+     * @return $this
+     */
+    public function setEvents(array $events)
+    {
+        $this->loadEvents($events);
+
+        return $this;
+    }
+
+    /**
+     * Gets the event configuration.
+     *
+     * NOTE: This method returns an event configuration array, look at the
+     * {@see EventLog} for the actual objects.
+     *
+     *     // Get the original event configuration
      *     $events = $config->get('event.events');
      *
-     *     // Get an event config that may have been modified at runtime
+     *     // Get the event runtime configuration
      *     $events = $eventManager->getEvents();
      *
      * @return array
@@ -110,7 +122,7 @@ class BaseEventManager
     }
 
     /**
-     * Gets an event config.
+     * Gets the configuration for a single event.
      *
      *     $event = $eventManager->getEvent('bundle.eventName');
      *
@@ -125,7 +137,7 @@ class BaseEventManager
     }
 
     /**
-     * Gets all the loaded event names.
+     * Gets the event names.
      *
      *     $eventNames = $eventManager->getEventNames();
      *
@@ -143,7 +155,7 @@ class BaseEventManager
      *
      *     $eventManager->on('bundle.eventName', 'fooObserver');
      *
-     *     // The observer config is optional and defaults to:
+     *     // The observer configuration is optional and defaults to:
      *     array(
      *         'enabled' => true,
      *         'prepend' => false,

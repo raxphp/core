@@ -289,6 +289,64 @@ class BaseArr
     }
 
     /**
+     * Removes an item from an array.
+     *
+     *     $arr = array('foo' => 123);
+     *
+     *     // By key
+     *     Arr::removeByKeyOrValue($arr, 'foo');
+     *
+     *     // By value
+     *     Arr::removeByKeyOrValue($arr, 123);
+     *
+     * @param array|ArrayAccess $array
+     * @param string|mixed      $key
+     *
+     * @return bool
+     */
+    public static function removeByKeyOrValue($array, $key)
+    {
+        if (is_array($key)) {
+            $newArray = array();
+
+            foreach ($key as $newKey) {
+                $newArray[$newKey] = static::removeByKeyOrValue($array, $newKey);
+            }
+
+            return $newArray;
+        }
+
+        if (array_key_exists($key, $array)) {
+            unset($array[$key]);
+
+            return true;
+        }
+
+        if (static::removeByValue($array, $key)) {
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * @param array|ArrayAccess $arr
+     * @param mixed             $value
+     *
+     * @return bool
+     */
+    public static function removeByValue($arr, $value)
+    {
+        if (false !== ($key = array_search($value, $arr))) {
+            unset($arr[$key]);
+
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
      * Checks if the key exists in the array; accepts dot notation.
      *
      *     $arr = array(

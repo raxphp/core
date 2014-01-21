@@ -7,9 +7,9 @@ use InvalidArgumentException;
 use ReflectionObject;
 
 /**
- * ServerMode holds the server mode, a.k.a the application environment.
+ * ServerMode represents the application environment.
  *
- * The server mode can be defined at the server level:
+ * It is a good practice to define the server mode at the server level:
  *
  * - Apache: SetEnv SERVER_MODE development
  * - Nginx:  fastcgi_param SERVER_MODE development
@@ -41,9 +41,11 @@ class BaseServerMode
     protected $mode;
 
     /**
+     * The server mode can be optionally set through the constructor.
+     *
      *     $serverMode = new ServerMode($_SERVER['SERVER_MODE']);
      *
-     *     // Or
+     *     // Or through the setter
      *     $serverMode = new ServerMode();
      *     $serverMode->set($_SERVER['SERVER_MODE']);
      *

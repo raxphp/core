@@ -137,15 +137,15 @@ class BaseRouter
 
         array_shift($matches);
 
-        $values = $route->getDefaults();
+        $placeHolders = $route->getDefaults();
 
-        foreach ($matches as $key => $value) {
-            if (!is_int($key)) {
-                $values[$key] = $value;
+        foreach ($matches as $placeHolder => $value) {
+            if (!is_int($placeHolder)) {
+                $placeHolders[$placeHolder] = $value;
             }
         }
 
-        return new MatchedRoute($route, $values);
+        return new MatchedRoute($route, $placeHolders);
     }
 
     /**

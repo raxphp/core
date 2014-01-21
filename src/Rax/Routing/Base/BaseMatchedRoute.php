@@ -20,7 +20,7 @@ class BaseMatchedRoute
     /**
      * @var array
      */
-    protected $params;
+    protected $placeHolders;
 
     /**
      * @var string
@@ -49,12 +49,13 @@ class BaseMatchedRoute
 
     /**
      * @param Route $route
-     * @param array $params
+     * @param array $placeHolders
      */
-    public function __construct(Route $route, array $params)
+    public function __construct(Route $route, array $placeHolders)
     {
-        $this->route  = $route;
-        $this->params = $params;
+        $this->route        = $route;
+        $this->placeHolders = $placeHolders;
+
         $this->parse($route);
     }
 
@@ -63,7 +64,7 @@ class BaseMatchedRoute
      */
     public function parse(Route $route)
     {
-        list($controller, $action)        = explode(':', $route->getController());
+        list($controller, $action) = explode(':', $route->getController());
         list($namespace, $controllerName) = explode('\\Controller\\', $controller);
 
         $this->namespace           = $namespace;
@@ -90,7 +91,7 @@ class BaseMatchedRoute
      */
     public function getParams()
     {
-        return $this->params;
+        return $this->placeHolders;
     }
 
     /**
@@ -103,7 +104,7 @@ class BaseMatchedRoute
      */
     public function getParam($key, $default = null)
     {
-        return array_key_exists($key, $this->params) ? $this->params[$key] : $default;
+        return array_key_exists($key, $this->placeHolders) ? $this->placeHolders[$key] : $default;
     }
 
     /**
