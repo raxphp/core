@@ -8,7 +8,7 @@ use Rax\Helper\Arr;
  * @author  Gregorio Ramirez <goyocode@gmail.com>
  * @license http://opensource.org/licenses/BSD-3-Clause
  */
-class BaseText
+class BaseStr
 {
     /**
      * Delimiter used in a path to separate words.
@@ -21,9 +21,9 @@ class BaseText
      * Embeds values into a string using either sprintf() or strtr().
      *
      *     // "hello world"
-     *     $str = Text::embedValues('hello %s', 'world');
-     *     $str = Text::embedValues('%s %s', array('hello', 'world'));
-     *     $str = Text::embedValues('{{greeting}} {{planet}}', array(
+     *     $str = Str::embedValues('hello %s', 'world');
+     *     $str = Str::embedValues('%s %s', array('hello', 'world'));
+     *     $str = Str::embedValues('{{greeting}} {{planet}}', array(
      *         '{{greeting}}' => 'hello',
      *         '{{planet}}'   => 'world',
      *     ));
@@ -55,11 +55,11 @@ class BaseText
      * Checks if string contains substring at least once.
      *
      *     // Case-sensitive
-     *     Text::contains('sir', 'Hello sir!'); // true
-     *     Text::contains('SIR', 'Hello sir!'); // false
+     *     Str::contains('sir', 'Hello sir!'); // true
+     *     Str::contains('SIR', 'Hello sir!'); // false
      *
      *     // Case-insensitive
-     *     Text::contains('SIR', 'Hello sir!', true); // true
+     *     Str::contains('SIR', 'Hello sir!', true); // true
      *
      * @param string $needle
      * @param string $haystack

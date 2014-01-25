@@ -3,7 +3,7 @@
 namespace Rax\Exception\Base;
 
 use Exception;
-use Rax\Helper\Text;
+use Rax\Helper\Str;
 
 /**
  * @author  Gregorio Ramirez <goyocode@gmail.com>
@@ -18,6 +18,6 @@ class BaseException extends Exception
      */
     public function __construct($message = '', $values = array(), Exception $previous = null)
     {
-        parent::__construct(Text::embedValues($message, $values), 0, $previous);
+        parent::__construct(Str::embedValues($message, $values), 0, $previous);
     }
 }

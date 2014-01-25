@@ -2,11 +2,11 @@
 
 namespace Rax\Helper;
 
-use Rax\Helper\Base\BaseText;
+use Rax\Helper\Base\BaseStr;
 
 /**
  * {@inheritdoc}
  */
-class Text extends BaseText
+class Str extends BaseStr
 {
 }

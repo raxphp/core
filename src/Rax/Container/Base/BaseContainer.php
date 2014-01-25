@@ -9,7 +9,7 @@ use Rax\Config\Config;
 use Rax\Exception\Exception;
 use Rax\Helper\Arr;
 use Rax\Helper\Php;
-use Rax\Helper\Text;
+use Rax\Helper\Str;
 use Rax\PhpParser\PhpParser;
 use ReflectionClass;
 use ReflectionFunction;
@@ -744,7 +744,7 @@ class BaseContainer
         $params = Arr::asArray($params);
 
         if (is_string($fqn)) {
-            if (Text::contains('\\', $fqn)) {
+            if (Str::contains('\\', $fqn)) {
                 $service = $this->getByFqn($fqn, $params);
             } elseif (function_exists($fqn)) {
                 return $this->callFunction($fqn, (array) $method);
