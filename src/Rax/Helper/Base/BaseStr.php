@@ -5,41 +5,32 @@ namespace Rax\Helper\Base;
 use Rax\Helper\Arr;
 
 /**
+ * Str provides string manipulation functions.
+ *
  * @author  Gregorio Ramirez <goyocode@gmail.com>
  * @license http://opensource.org/licenses/BSD-3-Clause
  */
 class BaseStr
 {
     /**
-     * Delimiter used in a path to separate words.
-     *
-     * @var string
-     */
-    const PATH_DELIMITER = '.';
-
-    /**
      * Embeds values into a string using either sprintf() or strtr().
      *
      *     // "hello world"
-     *     $str = Str::embedValues('hello %s', 'world');
-     *     $str = Str::embedValues('%s %s', array('hello', 'world'));
-     *     $str = Str::embedValues('{{greeting}} {{planet}}', array(
-     *         '{{greeting}}' => 'hello',
-     *         '{{planet}}'   => 'world',
+     *     Str::embed('hello %s', 'world');
+     *     Str::embed('%s %s', array('hello', 'world'));
+     *     Str::embed(':greeting :planet', array(
+     *         ':greeting' => 'hello',
+     *         ':planet'   => 'world',
      *     ));
      *
-     * @param string       $str
-     * @param array|string $values
+     * @param string $str
+     * @param mixed  $values
      *
      * @return string
      */
-    public static function embedValues($str, $values = null)
+    public static function embed($str, $values)
     {
-        if (null === $values) {
-            return $str;
-        }
-
-        $values = is_array($values) ? $values : array($values);
+        $values = (array) $values;
 
         if (Arr::isAssociative($values)) {
             $str = strtr($str, $values);
@@ -52,27 +43,27 @@ class BaseStr
     }
 
     /**
-     * Checks if string contains substring at least once.
+     * Checks if string contains substring.
      *
      *     // Case-sensitive
      *     Str::contains('sir', 'Hello sir!'); // true
      *     Str::contains('SIR', 'Hello sir!'); // false
      *
      *     // Case-insensitive
-     *     Str::contains('SIR', 'Hello sir!', true); // true
+     *     Str::contains('SIR', 'Hello sir!', false); // true
      *
      * @param string $needle
      * @param string $haystack
-     * @param bool   $isCaseInsensitive
+     * @param bool   $caseSensitive
      *
      * @return bool
      */
-    public static function contains($needle, $haystack, $isCaseInsensitive = false)
+    public static function contains($needle, $haystack, $caseSensitive = true)
     {
-        if ($isCaseInsensitive) {
-            return (false !== stripos($haystack, $needle));
-        } else {
+        if ($caseSensitive) {
             return (false !== strpos($haystack, $needle));
+        } else {
+            return (false !== stripos($haystack, $needle));
         }
     }
 }

@@ -13,11 +13,15 @@ class BaseException extends Exception
 {
     /**
      * @param string    $message
-     * @param array     $values
+     * @param mixed     $values
      * @param Exception $previous
      */
-    public function __construct($message = '', $values = array(), Exception $previous = null)
+    public function __construct($message = '', $values = null, Exception $previous = null)
     {
-        parent::__construct(Str::embedValues($message, $values), 0, $previous);
+        if (null !== $values) {
+            $message = Str::embed($message, $values);
+        }
+
+        parent::__construct($message, 0, $previous);
     }
 }
