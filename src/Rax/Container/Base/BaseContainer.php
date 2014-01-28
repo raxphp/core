@@ -3,7 +3,7 @@
 namespace Rax\Container\Base;
 
 use Closure;
-use Rax\Autoload\Autoload;
+use Rax\Autoload\Autoloader;
 use Rax\Bundle\Cfs;
 use Rax\Config\Config;
 use Rax\Exception\Exception;
@@ -21,7 +21,7 @@ use Symfony\Component\Finder\SplFileInfo;
 /**
  * Container is an automatic dependency injection container.
  *
- * @property Autoload   autoload
+ * @property Autoloader autoloader
  * @property Cfs        cfs
  * @property Config     config
  * @property PhpParser  phpParser
@@ -703,10 +703,10 @@ class BaseContainer
      *     $container->call('ajaxRouteFilter', 'filter');
      *
      *     // FQN
-     *     $container->call('Rax\\Routing\\Filter\\AjaxRouteFilter', 'filter');
+     *     $container->call('Rax\\Router\\Filter\\AjaxRouteFilter', 'filter');
      *
      *     // Both
-     *     $service = array('id' => 'ajaxRouteFilter', 'fqn' => 'Rax\\Routing\\Filter\\AjaxRouteFilter');
+     *     $service = array('id' => 'ajaxRouteFilter', 'fqn' => 'Rax\\Router\\Filter\\AjaxRouteFilter');
      *     $container->call($service, 'filter');
      *
      *     // Procedural function
@@ -772,7 +772,7 @@ class BaseContainer
      *     // Procedural function
      *     $container->callFunction('foo');
      *
-     *     function foo(Request $request, EventManager $eventManager)
+     *     function foo(Request $request, Eventer $eventManager)
      *     {
      *
      *     // Closure

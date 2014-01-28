@@ -8,20 +8,22 @@ use Rax\Exception\Exception;
 use Rax\Helper\Php;
 
 /**
+ * Arr provides array manipulation functions.
+ *
  * @author  Gregorio Ramirez <goyocode@gmail.com>
  * @license http://opensource.org/licenses/BSD-3-Clause
  */
 class BaseArr
 {
     /**
-     * Checks if the parameter is an array or array like object.
+     * Checks if the parameter is an array or an array-like object.
      *
      *     // true
      *     Arr::isArray(array());
      *     Arr::isArray(new ArrayObject());
      *
      *     // false
-     *     Arr::isArray('a');
+     *     Arr::isArray('foo');
      *     Arr::isArray(123);
      *
      * @param array|ArrayAccess $arr
@@ -36,11 +38,12 @@ class BaseArr
     /**
      * Checks if the parameter is an associative array.
      *
-     *     // true
-     *     Arr::isAssociative(array('a' => 'a'));
+     * NOTE: An associative array is defined as `array('key' => 'value')` while
+     * a numeric array is defined as `array('value')`.
      *
-     *     // false
-     *     Arr::isAssociative(array('a'));
+     *     Arr::isAssociative(array('foo' => 'foo')); // true
+     *
+     *     Arr::isAssociative(array('foo')); // false
      *
      * @param array|ArrayObject $arr
      *
@@ -62,11 +65,12 @@ class BaseArr
     /**
      * Checks if the parameter is a numeric array.
      *
-     *     // true
-     *     Arr::isNumeric(array('a'));
+     * NOTE: A numeric array is defined as `array('value')` while an associative
+     * array is defined as `array('key' => 'value')`.
      *
-     *     // false
-     *     Arr::isNumeric(array('a' => 'a'));
+     *     Arr::isNumeric(array('foo')); // true
+     *
+     *     Arr::isNumeric(array('foo' => 'foo')); // false
      *
      * @param array|ArrayObject $arr
      *
@@ -88,7 +92,7 @@ class BaseArr
     /**
      * Adds a key => value to the top of an array.
      *
-     * array_unshift() for associative arrays.
+     * This method is `array_unshift()` for associative arrays.
      *
      *     $arr = array('b' => 'b');
      *
@@ -101,6 +105,7 @@ class BaseArr
      *         [b] => b
      *     )
      *
+     *     // Vs
      *     array_unshift($arr, 'a');
      *
      *     // Result
@@ -114,7 +119,7 @@ class BaseArr
      * @param string            $key
      * @param mixed             $value
      *
-     * @return array
+     * @return array|ArrayObject
      */
     public static function unshift($arr, $key, $value)
     {
@@ -130,15 +135,52 @@ class BaseArr
     /**
      * Sets a value on an array using dot notation.
      *
-     *     $arr = array();
-     *     Arr::set($arr, 'one.two.three', 'wut');
+     * NOTE: If the path exists already it will be overridden.
      *
-     *     array(
-     *         "one" => array(
-     *             "two" => array(
-     *                 "three" => "wut",
+     *     $arr = array();
+     *
+     *     Arr::set($arr, 'one.two.three', 3);
+     *
+     *     Array
+     *     (
+     *         [one] => Array
+     *             (
+     *                 [two] => Array
+     *                     (
+     *                         [three] => 3
+     *                     )
      *             )
-     *         )
+     *     )
+     *
+     * Multiple values may be set at once:
+     *
+     *     $user = array(
+     *         'user' => array(
+     *             'info' => array(
+     *                 'phoneNumber' => '6192341234',
+     *             ),
+     *         ),
+     *     );
+     *
+     *     Arr::set($user, array(
+     *         'user.info.firstName' => 'Gregorio',
+     *         'user.address.city'   => 'San Diego',
+     *     ));
+     *
+     *     Array
+     *     (
+     *         [user] => Array
+     *             (
+     *                 [info] => Array
+     *                     (
+     *                         [phoneNumber] => 6192341234
+     *                         [firstName] => Gregorio
+     *                     )
+     *                 [address] => Array
+     *                     (
+     *                         [city] => San Diego
+     *                     )
+     *             )
      *     )
      *
      * @throws Exception
@@ -150,7 +192,7 @@ class BaseArr
     public static function set(&$arr, $key, $value = null)
     {
         if (!static::isArray($arr)) {
-            throw new Exception('Arr::set() expects parameter 1 to be an array or ArrayAccess object, %s given', Php::getDataType($arr));
+            throw new Exception('Arr::set() expects parameter 1 to be an array or array-like object, %s given', Php::getDataType($arr));
         }
 
         if (is_array($key)) {

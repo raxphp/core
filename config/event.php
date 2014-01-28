@@ -56,7 +56,7 @@ return array(
      *     // Event processing can be stopped at any point inside an observer
      *     $event->stopPropagation();
      *
-     * By convention the EventManager will call the trigger() method of the
+     * By convention Eventer will call the trigger() method of the
      * observer class, which becomes an OOD hotspot:
      *
      *     class FooObserver
