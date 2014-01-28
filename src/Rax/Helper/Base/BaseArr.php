@@ -38,12 +38,14 @@ class BaseArr
     /**
      * Checks if the parameter is an associative array.
      *
-     * NOTE: An associative array is defined as `array('key' => 'value')` while
-     * a numeric array is defined as `array('value')`.
+     * There's two types of array:
      *
-     *     Arr::isAssociative(array('foo' => 'foo')); // true
+     * - Associative e.g. `array('key' => 'value')`.
+     * - Numeric e.g. array('value')`.
      *
-     *     Arr::isAssociative(array('foo')); // false
+     *     Arr::isAssociative(array('key' => 'value')); // true
+     *
+     *     Arr::isAssociative(array('value')); // false
      *
      * @param array|ArrayObject $arr
      *
@@ -65,12 +67,14 @@ class BaseArr
     /**
      * Checks if the parameter is a numeric array.
      *
-     * NOTE: A numeric array is defined as `array('value')` while an associative
-     * array is defined as `array('key' => 'value')`.
+     * There's two types of array:
      *
-     *     Arr::isNumeric(array('foo')); // true
+     * - Numeric e.g. array('value')`.
+     * - Associative e.g. `array('key' => 'value')`.
      *
-     *     Arr::isNumeric(array('foo' => 'foo')); // false
+     *     Arr::isNumeric(array('value')); // true
+     *
+     *     Arr::isNumeric(array('key' => 'value')); // false
      *
      * @param array|ArrayObject $arr
      *
@@ -157,14 +161,14 @@ class BaseArr
      *     $user = array(
      *         'user' => array(
      *             'info' => array(
-     *                 'phoneNumber' => '6192341234',
+     *                 'firstName' => 'Gregorio',
      *             ),
      *         ),
      *     );
      *
      *     Arr::set($user, array(
-     *         'user.info.firstName' => 'Gregorio',
-     *         'user.address.city'   => 'San Diego',
+     *         'user.info.phoneNumber' => '6192341234',
+     *         'user.address.city'     => 'San Diego',
      *     ));
      *
      *     Array
@@ -173,8 +177,8 @@ class BaseArr
      *             (
      *                 [info] => Array
      *                     (
-     *                         [phoneNumber] => 6192341234
      *                         [firstName] => Gregorio
+     *                         [phoneNumber] => 6192341234
      *                     )
      *                 [address] => Array
      *                     (
@@ -219,23 +223,49 @@ class BaseArr
     }
 
     /**
-     * Gets the value found in the array or array like object at the specified
-     * index or dot notation path.
+     * Gets a value from an array.
      *
-     * This function also helps avoid the dreaded notice that's thrown when you
-     * try to access an undefined index.
+     * If the index doesn't exist, `null` is returned.
+     *
+     *     $arr = array();
+     *
+     *     $foo = Arr::get($arr, 'foo'); // null
+     *
+     *     // Vs
+     *     $foo = $arr['foo']; // Notice: Undefined index: foo
+     *
+     * You can override the default value:
+     *
+     *     Arr::get($arr, 'foo', 'bar'); // "bar"
+     *
+     * Dot notation may be used to retrieve a value form a nested array:
      *
      *     $arr = array(
      *         'one' => array(
-     *             'two' => 2,
+     *             'two' => array(
+     *                 'three' => 3,
+     *             ),
      *         ),
-     *         'three' => 3,
-     *         'four'  => 4,
      *     );
      *
-     *     Arr::get($arr, 'one');                  // array("two" => 2)
-     *     Arr::get($arr, 'one.two');              // 2
-     *     Arr::get($arr, array('three', 'four')); // array("three" => 3, "four" => 4)
+     *     Arr::get($arr, 'one.two.three'); // 3
+     *
+     * Multiple values may be extracted at once:
+     *
+     *     $arr = array(
+     *         'one'   => 1,
+     *         'two'   => 2,
+     *         'three' => 3,
+     *     );
+     *
+     *     Arr::get($arr, array('one', 'two'));
+     *
+     *     // Result
+     *     Array
+     *     (
+     *         [one] => 1
+     *         [two] => 2
+     *     )
      *
      * @throws Exception
      *
@@ -249,7 +279,7 @@ class BaseArr
     public static function get($arr, $key = null, $default = null, $useDotNotation = true)
     {
         if (!static::isArray($arr)) {
-            throw new Exception('Arr::get() expects parameter 1 to be an array or ArrayAccess object, %s given', Php::getDataType($arr));
+            throw new Exception('Arr::get() expects parameter 1 to be an array or array-like object, %s given', Php::getDataType($arr));
         }
 
         if (is_array($key)) {
@@ -289,13 +319,25 @@ class BaseArr
      *         ),
      *     );
      *
-     *     Arr::delete($arr, 'one.two');
+     *     Arr::remove($arr, 'one.two');
      *
-     *     array(
-     *         "one" => array(
-     *             "three" => 3,
-     *         )
+     *     // Result
+     *     Array
+     *     (
+     *         [one] => Array
+     *             (
+     *                 [three] => 3
+     *             )
      *     )
+     *
+     * Multiple values may be removed at once:
+     *
+     *     Arr::remove($user, array(
+     *         'user.info.firstName',
+     *         'user.address.city',
+     *     ));
+     *
+     * @throws Exception
      *
      * @param array|ArrayAccess $arr
      * @param array|string      $key
@@ -304,6 +346,10 @@ class BaseArr
      */
     public static function remove(&$arr, $key)
     {
+        if (!static::isArray($arr)) {
+            throw new Exception('Arr::remove() expects parameter 1 to be an array or array-like object, %s given', Php::getDataType($arr));
+        }
+
         if (is_array($key)) {
             $newArr = array();
 
@@ -325,6 +371,54 @@ class BaseArr
             return static::remove($arr[$currKey], implode('.', $keys));
         } else {
             unset($arr[$currKey]);
+        }
+
+        return true;
+    }
+
+    /**
+     * Checks if the array has an item.
+     *
+     *     $arr = array(
+     *         'one' => array(
+     *             'two'   => 2,
+     *         ),
+     *     );
+     *
+     *     Arr::has($arr, 'one.two');   // true
+     *     Arr::has($arr, 'one.three'); // false
+     *
+     * @throws Exception
+     *
+     * @param array|ArrayAccess $arr
+     * @param array|string      $key
+     *
+     * @return bool
+     */
+    public static function has($arr, $key)
+    {
+        if (!static::isArray($arr)) {
+            throw new Exception('Arr::has() expects parameter 1 to be an array or array-like object, %s given', Php::getDataType($arr));
+        }
+
+        if (is_array($key)) {
+            foreach ($key as $newKey) {
+                if (!static::has($arr, $newKey)) {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        $keys = explode('.', $key);
+
+        foreach ($keys as $key) {
+            if ((is_array($arr) && array_key_exists($key, $arr)) || ($arr instanceof ArrayAccess && $arr->offsetExists($key))) {
+                $arr = $arr[$key];
+            } else {
+                return false;
+            }
         }
 
         return true;
@@ -389,54 +483,6 @@ class BaseArr
     }
 
     /**
-     * Checks if the key exists in the array; accepts dot notation.
-     *
-     *     $arr = array(
-     *         'one' => array(
-     *             'two'   => 2,
-     *         ),
-     *     );
-     *
-     *     Arr::has($arr, 'one.two');   // true
-     *     Arr::has($arr, 'one.three'); // false
-     *
-     * @throws Exception
-     *
-     * @param array|ArrayAccess $arr
-     * @param array|string      $key
-     *
-     * @return bool
-     */
-    public static function has($arr, $key)
-    {
-        if (!static::isArray($arr)) {
-            throw new Exception('Arr::has() expects parameter 1 to be an array or ArrayAccess object, %s given', Php::getDataType($arr));
-        }
-
-        if (is_array($key)) {
-            foreach ($key as $newKey) {
-                if (!static::has($arr, $newKey)) {
-                    return false;
-                }
-            }
-
-            return true;
-        }
-
-        $keys = explode('.', $key);
-
-        foreach ($keys as $key) {
-            if ((is_array($arr) && array_key_exists($key, $arr)) || ($arr instanceof ArrayAccess && $arr->offsetExists($key))) {
-                $arr = $arr[$key];
-            } else {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    /**
      * @param array|ArrayAccess $a
      * @param array|ArrayAccess $b
      *
@@ -462,14 +508,13 @@ class BaseArr
     }
 
     /**
-     * Normalizes an array's keys and values.
+     * Normalizes the keys and values of an array.
      *
-     * Useful when you have mix of numeric and associative keys.
-     *
+     *     // Useful when you have mix of numeric and associative keys
      *     $config = array(
-     *         'one'   => array(),
-     *         'two',
-     *         'three' => array(),
+     *         'one' => array(),
+     *         'two' => array(),
+     *         'three',
      *     );
      *
      *     // Before
@@ -478,10 +523,10 @@ class BaseArr
      *         [one] => Array
      *             (
      *             )
-     *         [0] => two
-     *         [three] => Array
+     *         [two] => Array
      *             (
      *             )
+     *         [0] => three
      *     )
      *
      *     $config = Arr::normalize($config, array());
@@ -522,7 +567,13 @@ class BaseArr
     /**
      * Transforms a value into an array if not already.
      *
-     *     $arr = Arr::asArray(123); // array(123)
+     *     Arr::asArray(123);
+     *
+     *     // Result
+     *     Array
+     *     (
+     *         [0] => 123
+     *     )
      *
      * @param mixed $value
      *
