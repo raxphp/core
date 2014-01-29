@@ -388,6 +388,14 @@ class BaseArr
      *     Arr::has($arr, 'one.two');   // true
      *     Arr::has($arr, 'one.three'); // false
      *
+     * Multiple values may be removed at once:
+     *
+     *     // true if ALL keys exist
+     *     Arr::has($arr, array(
+     *         'one.two',
+     *         'one.three',
+     *     ));
+     *
      * @throws Exception
      *
      * @param array|ArrayAccess $arr
@@ -427,7 +435,9 @@ class BaseArr
     /**
      * Removes an item from an array.
      *
-     *     $arr = array('foo' => 123);
+     *     $arr = array(
+     *         'foo' => 123,
+     *     );
      *
      *     // By key
      *     Arr::removeByKeyOrValue($arr, 'foo');
@@ -435,8 +445,15 @@ class BaseArr
      *     // By value
      *     Arr::removeByKeyOrValue($arr, 123);
      *
+     *     // Result
+     *     Array
+     *     (
+     *     )
+     *
+     * @see Arr::removeByValue()
+     *
      * @param array|ArrayAccess $array
-     * @param string|mixed      $key
+     * @param mixed             $key
      *
      * @return bool
      */
@@ -466,6 +483,19 @@ class BaseArr
     }
 
     /**
+     * Removes an item from an array by value instead of the key.
+     *
+     *     $arr = array(
+     *         'foo' => 123,
+     *     );
+     *
+     *     Arr::removeByKeyOrValue($arr, 123);
+     *
+     *     // Result
+     *     Array
+     *     (
+     *     )
+     *
      * @param array|ArrayAccess $arr
      * @param mixed             $value
      *
