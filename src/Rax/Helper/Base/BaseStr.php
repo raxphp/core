@@ -16,9 +16,9 @@ class BaseStr
      * Embeds values into a string using either sprintf() or strtr().
      *
      *     // "hello world"
-     *     Str::embed('hello %s', 'world');
-     *     Str::embed('%s %s', array('hello', 'world'));
-     *     Str::embed(':greeting :planet', array(
+     *     $str = Str::embed('hello %s', 'world');
+     *     $str = Str::embed('%s %s', array('hello', 'world'));
+     *     $str = Str::embed(':greeting :planet', array(
      *         ':greeting' => 'hello',
      *         ':planet'   => 'world',
      *     ));
@@ -61,9 +61,11 @@ class BaseStr
     public static function contains($needle, $haystack, $caseSensitive = true)
     {
         if ($caseSensitive) {
-            return (false !== strpos($haystack, $needle));
+            $pos = strpos($haystack, $needle);
         } else {
-            return (false !== stripos($haystack, $needle));
+            $pos = stripos($haystack, $needle);
         }
+
+        return (false !== $pos);
     }
 }

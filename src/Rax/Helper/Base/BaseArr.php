@@ -44,8 +44,7 @@ class BaseArr
      * - Numeric e.g. array('value')`.
      *
      *     Arr::isAssociative(array('key' => 'value')); // true
-     *
-     *     Arr::isAssociative(array('value')); // false
+     *     Arr::isAssociative(array('value'));          // false
      *
      * @param array|ArrayObject $arr
      *
@@ -72,8 +71,7 @@ class BaseArr
      * - Numeric e.g. array('value')`.
      * - Associative e.g. `array('key' => 'value')`.
      *
-     *     Arr::isNumeric(array('value')); // true
-     *
+     *     Arr::isNumeric(array('value'));          // true
      *     Arr::isNumeric(array('key' => 'value')); // false
      *
      * @param array|ArrayObject $arr
@@ -100,7 +98,7 @@ class BaseArr
      *
      *     $arr = array('b' => 'b');
      *
-     *     Arr::unshift($arr, 'a', 'a');
+     *     $arr = Arr::unshift($arr, 'a', 'a');
      *
      *     // Result
      *     Array
@@ -196,7 +194,7 @@ class BaseArr
     public static function set(&$arr, $key, $value = null)
     {
         if (!static::isArray($arr)) {
-            throw new Exception('Arr::set() expects parameter 1 to be an array or array-like object, %s given', Php::getDataType($arr));
+            throw new Exception('Arr::set() expects parameter 1 to be an array or array-like object, %s given', Php::dataType($arr));
         }
 
         if (is_array($key)) {
@@ -236,7 +234,7 @@ class BaseArr
      *
      * You can override the default value:
      *
-     *     Arr::get($arr, 'foo', 'bar'); // "bar"
+     *     $foo = Arr::get($arr, 'foo', 'bar'); // "bar"
      *
      * Dot notation may be used to retrieve a value form a nested array:
      *
@@ -248,7 +246,7 @@ class BaseArr
      *         ),
      *     );
      *
-     *     Arr::get($arr, 'one.two.three'); // 3
+     *     $three = Arr::get($arr, 'one.two.three'); // 3
      *
      * Multiple values may be extracted at once:
      *
@@ -258,7 +256,7 @@ class BaseArr
      *         'three' => 3,
      *     );
      *
-     *     Arr::get($arr, array('one', 'two'));
+     *     $arr = Arr::get($arr, array('one', 'two'));
      *
      *     // Result
      *     Array
@@ -279,7 +277,7 @@ class BaseArr
     public static function get($arr, $key = null, $default = null, $useDotNotation = true)
     {
         if (!static::isArray($arr)) {
-            throw new Exception('Arr::get() expects parameter 1 to be an array or array-like object, %s given', Php::getDataType($arr));
+            throw new Exception('Arr::get() expects parameter 1 to be an array or array-like object, %s given', Php::dataType($arr));
         }
 
         if (is_array($key)) {
@@ -347,7 +345,7 @@ class BaseArr
     public static function remove(&$arr, $key)
     {
         if (!static::isArray($arr)) {
-            throw new Exception('Arr::remove() expects parameter 1 to be an array or array-like object, %s given', Php::getDataType($arr));
+            throw new Exception('Arr::remove() expects parameter 1 to be an array or array-like object, %s given', Php::dataType($arr));
         }
 
         if (is_array($key)) {
@@ -406,7 +404,7 @@ class BaseArr
     public static function has($arr, $key)
     {
         if (!static::isArray($arr)) {
-            throw new Exception('Arr::has() expects parameter 1 to be an array or array-like object, %s given', Php::getDataType($arr));
+            throw new Exception('Arr::has() expects parameter 1 to be an array or array-like object, %s given', Php::dataType($arr));
         }
 
         if (is_array($key)) {
@@ -452,30 +450,30 @@ class BaseArr
      *
      * @see Arr::removeByValue()
      *
-     * @param array|ArrayAccess $array
+     * @param array|ArrayAccess $arr
      * @param mixed             $key
      *
      * @return bool
      */
-    public static function removeByKeyOrValue($array, $key)
+    public static function removeByKeyOrValue(&$arr, $key)
     {
         if (is_array($key)) {
             $newArray = array();
 
             foreach ($key as $newKey) {
-                $newArray[$newKey] = static::removeByKeyOrValue($array, $newKey);
+                $newArray[$newKey] = static::removeByKeyOrValue($arr, $newKey);
             }
 
             return $newArray;
         }
 
-        if (array_key_exists($key, $array)) {
-            unset($array[$key]);
+        if (array_key_exists($key, $arr)) {
+            unset($arr[$key]);
 
             return true;
         }
 
-        if (static::removeByValue($array, $key)) {
+        if (static::removeByValue($arr, $key)) {
             return true;
         }
 
@@ -489,7 +487,7 @@ class BaseArr
      *         'foo' => 123,
      *     );
      *
-     *     Arr::removeByKeyOrValue($arr, 123);
+     *     Arr::removeByValue($arr, 123);
      *
      *     // Result
      *     Array
@@ -501,7 +499,7 @@ class BaseArr
      *
      * @return bool
      */
-    public static function removeByValue($arr, $value)
+    public static function removeByValue(&$arr, $value)
     {
         if (false !== ($key = array_search($value, $arr))) {
             unset($arr[$key]);
@@ -597,7 +595,7 @@ class BaseArr
     /**
      * Transforms a value into an array if not already.
      *
-     *     Arr::asArray(123);
+     *     $arr = Arr::asArray(123);
      *
      *     // Result
      *     Array

@@ -3,9 +3,10 @@
 namespace Rax\Helper\Base;
 
 use Closure;
-use Rax\Exception\Exception;
 
 /**
+ * Php provides custom PHP functions.
+ *
  * @author  Gregorio Ramirez <goyocode@gmail.com>
  * @license http://opensource.org/licenses/BSD-3-Clause
  */
@@ -15,11 +16,12 @@ class BasePhp
      * Loads a file within an empty scope and returns the output.
      *
      *     // e.g. file holding a configuration array
-     *     return array(...);
+     *     <?php
      *
-     *     $array = PhpHelper::load($file);
+     *     return array();
      *
-     * @throws Exception
+     *     // $file holds the full path to file above
+     *     $config = Php::load($file);
      *
      * @param string $file
      *
@@ -27,14 +29,24 @@ class BasePhp
      */
     public static function load($file)
     {
-        if (!is_array($array = require $file)) {
-            throw new Exception('%s does not return an array', $file);
-        }
-
-        return $array;
+        /** @noinspection PhpIncludeInspection */
+        return (require $file);
     }
 
     /**
+     * Returns the passed in value.
+     *
+     * If the value is a closure its result is returned instead.
+     *
+     * NOTE: This is a low level function that allows callbacks to be passed in as the
+     * default value in methods that support defaults e.g. {@see Arr::get()}.
+     *
+     *     // "foo"
+     *     $foo = Php::value('foo');
+     *     $foo = Php::value(function() {
+     *         return 'foo';
+     *     });
+     *
      * @param Closure|mixed $value
      *
      * @return mixed
@@ -45,30 +57,51 @@ class BasePhp
     }
 
     /**
-     * Gets the data type of the variable.
+     * Gets the parameter's data type.
      *
-     * In the case of an object, the name of the class is returned.
+     * If the parameter is an object, its class name is returned.
      *
-     *     gettype(new Exception());          // "object"
-     *     Php::getDataType(new Exception()); // "Exception"
+     *     $dataType = Php::dataType(new Exception()); // "Exception"
+     *
+     *     // Vs
+     *     $dataType = gettype(new Exception()); // "object"
      *
      * @param mixed $value
      *
      * @return string
      */
-    public static function getDataType($value)
+    public static function dataType($value)
     {
         return is_object($value) ? get_class($value) : gettype($value);
     }
 
     /**
-     * Gets the result of var_export() with the coding style adjusted.
+     * Gets the source code of a variable.
+     *
+     * Basically `var_export()` with the coding style adjusted.
+     *
+     *     $code = array('key' => 'value');
+     *
+     *     $sourceCode = Php::sourceCode($code);
+     *
+     *     // Result
+     *     array(
+     *         'key' => 'value',
+     *     )
+     *
+     *     // Vs
+     *     $sourceCode = var_export($code);
+     *
+     *     // Result
+     *     array (
+     *       'key' => 'value',
+     *     )
      *
      * @param mixed $code
      *
      * @return string
      */
-    public static function varExport($code)
+    public static function sourceCode($code)
     {
         return strtr(var_export($code, true), array(
             '  '      => '    ',
@@ -77,17 +110,17 @@ class BasePhp
     }
 
     /**
-     * Gets the class name without the namespaces.
+     * Gets the class name of an object without the namespace.
      *
      *     $bar = new Rax\Foo\Bar();
      *
-     *     $className = Php::getClassName($bar); // "Bar"
+     *     $className = Php::className($bar); // "Bar"
      *
      * @param string|object $obj
      *
      * @return string
      */
-    public static function getClassName($obj)
+    public static function className($obj)
     {
         if (is_object($obj)) {
             $obj = get_class($obj);

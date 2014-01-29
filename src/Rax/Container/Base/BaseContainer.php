@@ -758,7 +758,7 @@ class BaseContainer
         } elseif (is_object($fqn)) {
             $service = $fqn;
         } else {
-            throw new Exception('Invalid service, got %s', Php::getDataType($fqn));
+            throw new Exception('Invalid service, got %s', Php::dataType($fqn));
         }
 
         return $this->callMethod($service, $method, $params);
@@ -899,7 +899,7 @@ class BaseContainer
     {
         foreach ($params as $param => $value) {
             if (is_int($param) && is_object($value)) {
-                $param = Php::getClassName($value);
+                $param = Php::className($value);
             }
 
             $params[$param] = $value;
