@@ -7,9 +7,9 @@ use InvalidArgumentException;
 use ReflectionObject;
 
 /**
- * ServerMode represents the application environment.
+ * ServerMode holds and manages the server mode (aka application environment).
  *
- * It is a good practice to define the server mode at the server level:
+ * Define the server mode at the server level:
  *
  * - Apache: SetEnv SERVER_MODE development
  * - Nginx:  fastcgi_param SERVER_MODE development
@@ -23,12 +23,14 @@ class BaseServerMode
     /**
      * Server modes:
      *
-     * Production:  Server accessible by all users.
-     * Staging:     Production clone used by team and client to test changes
-     *              before they go live.
-     * Testing:     Development clone used by team and developer to test changes
-     *              before pushing to staging.
-     * Development: Local machine.
+     * - Production  (400-499): Production server (caching on, errors off, etc)
+     *                          accessible by end users.
+     * - Staging     (300-399): Same as production but runs on a server used for
+     *                          testing purposes by the team and client.
+     * - Testing     (200-299): Same as development but runs on a server used
+     *                          for testing purposes by the team.
+     * - Development (100-199): Local machine with dev settings (caching off,
+     *                          errors on, etc) used by the developer.
      */
     const PRODUCTION  = 400;
     const STAGING     = 300;
@@ -42,6 +44,9 @@ class BaseServerMode
 
     /**
      * The server mode can be optionally set through the constructor.
+     *
+     * NOTE: The server mode will be set automatically by the application at
+     * runtime if defined at the server level.
      *
      *     $serverMode = new ServerMode($_SERVER['SERVER_MODE']);
      *
@@ -64,12 +69,13 @@ class BaseServerMode
      * Ultimately the value is stored as an integer to allow greater than logic
      * when comparing modes.
      *
-     * NOTE: The server mode will be set automatically if defined at the server level.
+     * NOTE: The server mode will be set automatically by the application at
+     * runtime if defined at the server level.
      *
-     *     // Integer
+     *     // By integer
      *     $serverMode->set(ServerMode::DEVELOPMENT);
      *
-     *     // String
+     *     // By string
      *     $serverMode->set('development');
      *
      * @throws InvalidArgumentException
@@ -95,9 +101,12 @@ class BaseServerMode
      * Gets the server mode.
      *
      * The server mode is stored as an integer to allow greater than logic when
-     * comparing modes.
+     * comparing modes. To retrieve the server mode name or short name use
+     * {@see ServerMode::getName()} or {@see ServerMode::getShortName()}
      *
-     *     $mode = $serverMode->get(); // 100
+     *     $mode = $serverMode->get();          // 100
+     *     $mode = $serverMode->getName();      // "development"
+     *     $mode = $serverMode->getShortName(); // "dev"
      *
      * @return int
      */
@@ -107,7 +116,12 @@ class BaseServerMode
     }
 
     /**
-     * Gets the server mode as a string e.g. "development".
+     * Gets the server mode' name e.g. "staging".
+     *
+     * NOTE: A constant holding the server mode must be defined.
+     *
+     *     // The 100 mode is represented by the "development" name
+     *     const DEVELOPMENT = 100;
      *
      *     $mode = $serverMode->getName(); // "development"
      *
@@ -119,7 +133,7 @@ class BaseServerMode
     {
         $reflection = new ReflectionObject($this);
 
-        // e.g. DEVELOPMENT => 100
+        // e.g. PRODUCTION => 400
         foreach ($reflection->getConstants() as $name => $mode) {
             if ($this->mode === $mode) {
                 return strtolower($name);
@@ -135,7 +149,7 @@ class BaseServerMode
      * A short name represents a range of server modes that are alike in configuration:
      *
      * - prod: Any mode that falls between staging and production.
-     * - dev: Any mode that falls between development and testing.
+     * - dev:  Any mode that falls between development and testing.
      *
      *     $mode = $serverMode->getShortName(); // "dev"
      *
@@ -157,21 +171,30 @@ class BaseServerMode
     }
 
     /**
-     * Gets the relevant server names.
+     * Gets the server mode's name and short name.
+     *
+     *     $modeNames = $serverMode->all();
+     *
+     *     // Result
+     *     Array
+     *     (
+     *         [0] => development
+     *         [1] => dev
+     *     )
      *
      * @return array
      */
     public function all()
     {
-        $modes   = array();
-        $modes[] = $this->getName();
-        $modes[] = $this->getShortName();
-
-        return $modes;
+        return array($this->getName(), $this->getShortName());
     }
 
     /**
-     * Checks if the supplied mode is the current server mode.
+     * Checks if the parameter is the current server mode.
+     *
+     *     if ($serverMode->is(ServerMode::DEVELOPMENT)) {
+     *     if ($serverMode->is('development')) {
+     *     if ($serverMode->is('dev')) {
      *
      * @param int|string $mode
      *
@@ -183,23 +206,25 @@ class BaseServerMode
             return true;
         }
 
-        if (is_string($mode)) {
-            $mode = strtolower($mode);
+        if (!is_string($mode)) {
+            return false;
+        }
 
-            if ($mode === $this->getShortName()) {
-                return true;
-            }
+        if ($mode === $this->getShortName()) {
+            return true;
+        }
 
-            if ($mode === $this->getName()) {
-                return true;
-            }
+        if ($mode === $this->getName()) {
+            return true;
         }
 
         return false;
     }
 
     /**
-     * Checks if the server mode is "production".
+     * Checks if the server mode is production.
+     *
+     *     if ($serverMode->isProduction()) {
      *
      * @return bool
      */
@@ -209,7 +234,9 @@ class BaseServerMode
     }
 
     /**
-     * Checks if the server mode is "staging".
+     * Checks if the server mode is staging.
+     *
+     *     if ($serverMode->isStaging()) {
      *
      * @return bool
      */
@@ -219,7 +246,9 @@ class BaseServerMode
     }
 
     /**
-     * Checks if the server mode is "testing".
+     * Checks if the server mode is testing.
+     *
+     *     if ($serverMode->isTesting()) {
      *
      * @return bool
      */
@@ -229,7 +258,9 @@ class BaseServerMode
     }
 
     /**
-     * Checks if the server mode is "development".
+     * Checks if the server mode is development.
+     *
+     *     if ($serverMode->isDevelopment()) {
      *
      * @return bool
      */
@@ -239,28 +270,92 @@ class BaseServerMode
     }
 
     /**
-     * Checks if the server mode is "staging" or "production".
+     * Checks if the server mode falls between the production range (400-499).
+     *
+     *     if ($serverMode->isProductionIsh()) {
+     *
+     * @return bool
+     */
+    public function isProductionIsh()
+    {
+        return ($this->mode >= static::PRODUCTION) && ($this->mode <= 499);
+    }
+
+    /**
+     * Checks if the server mode falls between the staging range (300-399).
+     *
+     *     if ($serverMode->isStagingIsh()) {
+     *
+     * @return bool
+     */
+    public function isStagingIsh()
+    {
+        return ($this->mode >= static::STAGING) && ($this->mode <= 399);
+    }
+
+    /**
+     * Checks if the server mode falls between the testing range (200-299).
+     *
+     *     if ($serverMode->isTestingIsh()) {
+     *
+     * @return bool
+     */
+    public function isTestingIsh()
+    {
+        return ($this->mode >= static::TESTING) && ($this->mode <= 299);
+    }
+
+    /**
+     * Checks if the server mode falls between the development range (100-199).
+     *
+     *     if ($serverMode->isDevelopmentIsh()) {
+     *
+     * @return bool
+     */
+    public function isDevelopmentIsh()
+    {
+        return ($this->mode >= static::DEVELOPMENT) && ($this->mode <= 199);
+    }
+
+    /**
+     * Checks if the server mode is prod.
+     *
+     * Prod represents all the server modes that fall between the range of
+     * staging and production. This allows you to run the same logic on both
+     * environments since they should behave exactly the same.
+     *
+     * - Production (400-499): Production server (caching on, errors off, etc)
+     *                         accessible by end users.
+     * - Staging    (300-399): Same as production but runs on a server used for
+     *                         testing purposes by the team and client.
+     *
+     *     if ($serverMode->isProd()) {
      *
      * @return bool
      */
     public function isProd()
     {
-        return (
-            ($this->mode <= static::PRODUCTION) &&
-            ($this->mode > static::TESTING)
-        );
+        return (($this->mode >= static::STAGING) && ($this->mode <= 499));
     }
 
     /**
-     * Checks if the server mode is "testing" or "development".
+     * Checks if the server mode is dev.
+     *
+     * Dev represents all the server modes that fall between the range of
+     * development and testing. This allows you to run the same logic on both
+     * environments since they should behave exactly the same.
+     *
+     * - Development (100-199): Local machine with dev settings (caching off,
+     *                          errors on, etc).
+     * - Testing     (200-299): Same as development but runs on a server used
+     *                          for testing purposes by the team.
+     *
+     *     if ($serverMode->isDev()) {
      *
      * @return bool
      */
     public function isDev()
     {
-        return (
-            ($this->mode <= static::TESTING) &&
-            ($this->mode >= 0)
-        );
+        return (($this->mode >= static::DEVELOPMENT) && ($this->mode <= 299));
     }
 }

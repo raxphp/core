@@ -100,14 +100,14 @@ abstract class BaseAbstractBundleLoader implements BundleLoaderInterface
     protected function getFiles()
     {
         // config/dev/bundles.php
-        $modes = $this->serverMode->all();
+        $modeNames = $this->serverMode->all();
 
         // config/bundles.php
-        $modes[] = '';
+        $modeNames[] = '';
 
         $files = array();
 
-        foreach ($modes as $mode) {
+        foreach ($modeNames as $mode) {
             if (is_file($file = $this->buildPath($mode))) {
                 $files[] = $file;
             }
